@@ -5,11 +5,10 @@ RF24 radio(7, 8); // CE, CSN
 const byte address[6] = "00001";
 
 typedef enum MessageType {
-    ManualMode = 0b00000000,
-    RemoteMode = 0b00100000,
-    SteerRight = 0b10000000,
-    SteerLeft  = 0b10100000,
-    Accelerate = 0b11000000,
+    ManualModeMsg = 0b00000000,
+    RemoteModeMsg = 0b00000001,
+    SteerMsg      = 0b00000100,
+    AccelerateMsg = 0b00000110
 } MessageType;
 
 
@@ -23,18 +22,22 @@ void setup() {
 
 void loop() {
     delay(1000);
-    Serial.println("trying to read...");
+    Serial.println("Trying to read...");
     if (radio.available()) {
-        byte text;
-        radio.read(&text, sizeof(text));
-        Serial.println(text);
+        int message;
+        radio.read(&message, sizeof(message));
+        Serial.println(message, BIN);
 
-        if (text == SteerRight) {
-            Serial.println("Read right message!");
-        } else if (text == SteerLeft) {
-            Serial.println("Read left message!");
-        } else if (text == Accelerate) {
+        // Mask out the header (first 8 bits)
+        int header = message >> 8 & 0xFF;
+        if (header == SteerMsg) {
+            Serial.println("Read steering message!");
+            int angle = message & 0xFF;
+            Serial.println(angle,DEC);            
+        } else if (header == AccelerateMsg) {
             Serial.println("Read accelerate message!");
+            int acc = message & 0xFF;
+            Serial.println(acc);
         }
     }
 }
