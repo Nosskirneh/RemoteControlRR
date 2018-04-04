@@ -2,6 +2,10 @@
 #include <RF24.h>
 #include <PS2X_lib.h>
 
+
+// The PS2 joystick and button values varies between 0 and 255.
+#define PS2_MIN            0
+#define PS2_MAX            255
 #define JOYSTICK_CENTER    128
 #define JOYSTICK_THRESHOLD 28
 
@@ -70,7 +74,7 @@ void sendRadioMessage(int message) {
 
 void sendVibratePulse() {
     Serial.println("Vibrate!");
-    ps2x.read_gamepad(false, 255); // Vibrate
+    ps2x.read_gamepad(false, PS2_MAX); // Vibrate
     delay(300);
     ps2x.read_gamepad(false, 0);   // Stop vibrate
 }
@@ -125,22 +129,21 @@ void readController() {
         // Send accelerate?
         byte LY = ps2x.Analog(PSS_LY);
         if (isJoystickUpwards(LY)) {
-            // The Y value of the joysticks on the PS2 controller
-            // has 255 as its maximum value downwards and 0 upwards.
-            // We need to map it to a percentage before sending the data
-            byte percentage = map(LY, JOYSTICK_CENTER - JOYSTICK_THRESHOLD, 0, 0, 100);
+            // Map the left joystick's Y-coordinate to a percentage before sending the data
+            byte percentage = map(LY, JOYSTICK_CENTER - JOYSTICK_THRESHOLD, PS2_MIN, 0, 100);
             int message = combine(Accelerate, percentage);
             sendRadioMessage(message);
         }
 
+        // Map joystick coordinates to degrees
         // Always send steering (if it's center it's 90 degrees)
         byte RX = ps2x.Analog(PSS_RX);
         //Serial.println(ps2x.Analog(PSS_RX));
         byte angle;
         if (RX < JOYSTICK_CENTER - JOYSTICK_THRESHOLD) // Right
-            angle = map(RX, 0, JOYSTICK_CENTER - JOYSTICK_THRESHOLD, 180, 90);
+            angle = map(RX, PS2_MIN, JOYSTICK_CENTER - JOYSTICK_THRESHOLD, 180, 90);
         else if (RX > JOYSTICK_CENTER + JOYSTICK_THRESHOLD) // Left
-            angle = map(RX, JOYSTICK_CENTER + JOYSTICK_THRESHOLD, 255, 90, 0);
+            angle = map(RX, JOYSTICK_CENTER + JOYSTICK_THRESHOLD, PS2_MAX, 90, 0);
         else // Center
             angle = 90;
         //Serial.println(angle);
