@@ -53,6 +53,7 @@ void setup() {
     Serial.println("Everything went OK!");
     ps2x.enableRumble();
     ps2x.enablePressures();
+    sendVibratePulse();
 }
 
 bool isJoystickUpwards(byte value) {
@@ -84,7 +85,7 @@ void sendVibratePulse() {
     Serial.println("Vibrate!");
     ps2x.read_gamepad(false, PS2_MAX); // Vibrate
     delay(300);
-    ps2x.read_gamepad(false, 0);   // Stop vibrate
+    ps2x.read_gamepad(false, 0);       // Stop vibrate
 }
 
 void checkSelectButton(PS2X ps2x) {
