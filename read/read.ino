@@ -4,11 +4,12 @@
 RF24 radio(7, 8); // CE, CSN
 const byte address[6] = "00001";
 
+// To be sent over radio
 typedef enum MessageType {
-    ManualModeMsg = 0b00000000,
-    RemoteModeMsg = 0b00000001,
-    SteerMsg      = 0b00000100,
-    AccelerateMsg = 0b00000110
+    ManualMode = 0b00000000,
+    RemoteMode = 0b00000001,
+    Steer      = 0b00000100,
+    Accelerate = 0b00000110
 } MessageType;
 
 
@@ -30,11 +31,11 @@ void loop() {
 
         // Mask out the header (first 8 bits)
         int header = message >> 8 & 0xFF;
-        if (header == SteerMsg) {
+        if (header == Steer) {
             Serial.println("Read steering message!");
             int angle = message & 0xFF;
             Serial.println(angle,DEC);            
-        } else if (header == AccelerateMsg) {
+        } else if (header == Accelerate) {
             Serial.println("Read accelerate message!");
             int acc = message & 0xFF;
             Serial.println(acc);
