@@ -18,6 +18,8 @@ typedef enum MessageType {
     Accelerate = 0b00000110
 } MessageType;
 
+int mode = ManualMode;
+
 #define PS2_CLK 22
 #define PS2_CMD 23
 #define PS2_ATT 24
@@ -59,39 +61,63 @@ int combine(byte b1, byte b2) {
 }
 
 void sendRadioMessage(int message) {
-    Serial.print("sending message: ");
-    Serial.println(message, BIN);
+    //Serial.print("sending message: ");
+    //Serial.println(message, BIN);
     radio.write(&message, sizeof(message));
 }
 
 void sendVibratePulse() {
+    Serial.println("Vibrate!");
     ps2x.read_gamepad(false, 255); // Vibrate
     delay(300);
-    ps2x.read_gamepad(false, 0); // Vibrate
+    ps2x.read_gamepad(false, 0);   // Stop vibrate
+}
+
+void checkSelectButton(PS2X ps2x) {
+    static bool shouldSaveStartTime = true;
+    static unsigned long firstButtonTime;
+    if (ps2x.Button(PSB_SELECT)) {
+        // Store the timestamp of the first button event
+        if (shouldSaveStartTime) {
+            shouldSaveStartTime = false;
+            firstButtonTime = millis();
+        }
+
+        // Has button been pressed for 0.2 seconds?
+        if (millis() - firstButtonTime > 200) {
+            Serial.println("Button held for at least 0.2 s");
+
+            // Switch mode
+            if (mode == ManualMode) {
+                mode = RemoteMode;
+            } else {
+                mode = ManualMode;
+            }
+            Serial.print("Changing mode to: ");
+            Serial.println(mode);
+
+            sendRadioMessage(mode);
+
+            // Vibrate and delay!
+            for (int i = 0; i < mode + 1; i++) {
+                if (i != 0)
+                    delay(500);
+                sendVibratePulse();
+            }
+            shouldSaveStartTime = true;
+        }
+    } else if (firstButtonTime != 0) {
+        // If we go one loop iteration and the button is
+        // not held after the first button event, cancel
+        shouldSaveStartTime = true;
+    }
 }
 
 void readController() {
-    static int mode = ManualMode;
     ps2x.read_gamepad();
 
     // Send change of mode?
-    if (ps2x.Button(PSB_SELECT)) {
-        // Switch mode
-        if (mode == ManualMode) {
-            mode = RemoteMode;
-        } else {
-            mode = ManualMode;
-        }
-
-        sendRadioMessage(mode);
-
-        // Vibrate and delay!
-        // Replace the delays with millis() to allow user inputs in between?
-        for (int i = 0; i < mode + 1; i++) {
-            delay(500);
-            sendVibratePulse();
-        }
-    }
+    checkSelectButton(ps2x);
 
     if (mode == RemoteMode) {
         // Send accelerate?
@@ -107,7 +133,7 @@ void readController() {
 
         // Always send steering (if it's center it's 90 degrees)
         byte RX = ps2x.Analog(PSS_RX);
-        Serial.println(ps2x.Analog(PSS_RX));
+        //Serial.println(ps2x.Analog(PSS_RX));
         byte angle;
         if (RX < JOYSTICK_CENTER - JOYSTICK_THRESHOLD) // Right
             angle = map(RX, 0, JOYSTICK_CENTER - JOYSTICK_THRESHOLD, 180, 90);
@@ -115,15 +141,13 @@ void readController() {
             angle = map(RX, JOYSTICK_CENTER + JOYSTICK_THRESHOLD, 255, 90, 0);
         else // Center
             angle = 90;
-        Serial.println(angle);
+        //Serial.println(angle);
         int message = combine(Steer, angle);
         sendRadioMessage(message);
     }
-
 }
 
 void loop() {
-    delay(1000);
-
+    delay(40);
     readController();
 }
