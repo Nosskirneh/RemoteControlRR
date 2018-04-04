@@ -66,10 +66,18 @@ int combine(byte b1, byte b2) {
     return combined;
 }
 
-void sendRadioMessage(int message) {
-    //Serial.print("sending message: ");
-    //Serial.println(message, BIN);
-    radio.write(&message, sizeof(message));
+bool sendRadioMessage(int message) {
+    static unsigned long lastTimestamp = 0;
+    // RF24 somehow crashes Arduino when sending too fast.
+    // Limit it to every 0.05 s. Do not block first call.
+    if (lastTimestamp == 0 || millis() - lastTimestamp > 50) {
+        //Serial.print("sending message: ");
+        //Serial.println(message, BIN);
+        radio.write(&message, sizeof(message));
+        lastTimestamp = millis();
+        return true;
+    }
+    return false;
 }
 
 void sendVibratePulse() {
@@ -102,7 +110,12 @@ void checkSelectButton(PS2X ps2x) {
             Serial.print("Changing mode to: ");
             Serial.println(mode);
 
-            sendRadioMessage(mode);
+            // Change of mode is far more important to send than
+            // an accelerate/steering message (the latter are
+            // repeating itself whilst change of mode is not).
+            while (!sendRadioMessage(mode)) {
+                Serial.println("Radio chip busy... trying again!");
+            }
 
             // Vibrate and delay!
             for (int i = 0; i < mode + 1; i++) {
