@@ -40,13 +40,15 @@ void setup() {
     // Setup PS2 controller
     int error = ps2x.config_gamepad(PS2_CLK, PS2_CMD, PS2_ATT, PS2_DAT, pressures, rumble);
 
-    if (error != 0) {
-        Serial.println("Something is wrong with the PS2 controller");
-    } else {
-        Serial.println("Everything went OK!");
-        ps2x.enableRumble();
-        ps2x.enablePressures();
+    while (error != 0) {
+        Serial.println("Something is wrong with the PS2 controller! Do not hold any buttons on start. Trying again...");
+        delay(200);
+        error = ps2x.config_gamepad(PS2_CLK, PS2_CMD, PS2_ATT, PS2_DAT, pressures, rumble);
     }
+
+    Serial.println("Everything went OK!");
+    ps2x.enableRumble();
+    ps2x.enablePressures();
 }
 
 bool isJoystickUpwards(byte value) {
