@@ -131,6 +131,8 @@ void readController() {
         if (isJoystickUpwards(LY)) {
             // Map the left joystick's Y-coordinate to a percentage before sending the data
             byte percentage = map(LY, JOYSTICK_CENTER - JOYSTICK_THRESHOLD, PS2_MIN, 0, 100);
+            Serial.print("Will send percentage: ");
+            Serial.println(percentage);
             int message = combine(Accelerate, percentage);
             sendRadioMessage(message);
         }
@@ -138,7 +140,6 @@ void readController() {
         // Map joystick coordinates to degrees
         // Always send steering (if it's center it's 90 degrees)
         byte RX = ps2x.Analog(PSS_RX);
-        //Serial.println(ps2x.Analog(PSS_RX));
         byte angle;
         if (RX < JOYSTICK_CENTER - JOYSTICK_THRESHOLD) // Right
             angle = map(RX, PS2_MIN, JOYSTICK_CENTER - JOYSTICK_THRESHOLD, 180, 90);
@@ -146,7 +147,8 @@ void readController() {
             angle = map(RX, JOYSTICK_CENTER + JOYSTICK_THRESHOLD, PS2_MAX, 90, 0);
         else // Center
             angle = 90;
-        //Serial.println(angle);
+        Serial.print("Will send steering angle: ");
+        Serial.println(angle);
         int message = combine(Steer, angle);
         sendRadioMessage(message);
     }
