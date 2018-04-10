@@ -1,3 +1,11 @@
+/*
+    Leaderboat:
+    The PS2-controller's left joystick is used to accelerate and the right for
+    steering. Hold the SELECT button to change mode between manual and remote
+    control.
+*/
+
+
 #include <SPI.h>
 #include <RF24.h>
 #include <PS2X_lib.h>
@@ -28,8 +36,6 @@ int mode = ManualMode;
 #define PS2_CMD 23
 #define PS2_ATT 24
 #define PS2_DAT 25
-#define pressures false
-#define rumble    false
 
 
 void setup() {
@@ -42,17 +48,19 @@ void setup() {
     radio.stopListening();
 
     // Setup PS2 controller
-    int error = ps2x.config_gamepad(PS2_CLK, PS2_CMD, PS2_ATT, PS2_DAT, pressures, rumble);
+    int error = ps2x.config_gamepad(PS2_CLK, PS2_CMD, PS2_ATT, PS2_DAT, true, true);
 
     while (error != 0) {
-        Serial.println("Something is wrong with the PS2 controller! Do not hold any buttons on start. Trying again...");
+        Serial.println("Something is wrong with the PS2 controller! Trying again...");
         delay(200);
-        error = ps2x.config_gamepad(PS2_CLK, PS2_CMD, PS2_ATT, PS2_DAT, pressures, rumble);
+        error = ps2x.config_gamepad(PS2_CLK, PS2_CMD, PS2_ATT, PS2_DAT, true, true);
     }
 
-    Serial.println("Everything went OK!");
+    // This isn't done by the library for some reason
     ps2x.enableRumble();
     ps2x.enablePressures();
+
+    Serial.println("Everything went OK!");
     sendVibratePulse();
 }
 
