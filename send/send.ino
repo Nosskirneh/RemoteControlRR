@@ -70,8 +70,8 @@ int combine(byte b1, byte b2) {
 bool sendRadioMessage(int message) {
     static unsigned long lastTimestamp = 0;
     // RF24 somehow crashes Arduino when sending too fast.
-    // Limit it to every 0.05 s. Do not block first call.
-    if (lastTimestamp == 0 || millis() - lastTimestamp > 50) {
+    // Limit it to every 0.1 s. Do not block first call.
+    if (lastTimestamp == 0 || millis() - lastTimestamp > 100) {
         //Serial.print("sending message: ");
         //Serial.println(message, BIN);
         radio.write(&message, sizeof(message));
