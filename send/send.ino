@@ -148,13 +148,19 @@ void readController() {
         impossible to send a 0 % acceleration or steer straight forward message.
         */
 
+        int message;
+
         // Send accelerate
         // Map the left joystick's Y-coordinate to a percentage
-        byte percentage = map(ps2x.Analog(PSS_LY), JOYSTICK_CENTER - JOYSTICK_THRESHOLD,
-                              PS2_MIN, 0, 100);
+        byte LY = ps2x.Analog(PSS_LY);
+        byte percentage;
+        if (LY < JOYSTICK_CENTER - JOYSTICK_THRESHOLD)
+            percentage = map(LY, JOYSTICK_CENTER - JOYSTICK_THRESHOLD, PS2_MIN, 0, 100);
+        else
+            percentage = 0;
         Serial.print("Will send percentage: ");
         Serial.println(percentage);
-        int message = combine(Accelerate, percentage);
+        message = combine(Accelerate, percentage);
         sendRadioMessage(message);
 
         // Map right joystick's X-coordinate to a degree between 180 and 0
@@ -168,7 +174,7 @@ void readController() {
             angle = 90;
         Serial.print("Will send steering angle: ");
         Serial.println(angle);
-        int message = combine(Steer, angle);
+        message = combine(Steer, angle);
         sendRadioMessage(message);
     }
 }
