@@ -64,11 +64,6 @@ void setup() {
     sendVibratePulse();
 }
 
-bool isJoystickUpwards(byte value) {
-    // Middle is about 128 (+- 28)
-    return value < (JOYSTICK_CENTER - JOYSTICK_THRESHOLD);
-}
-
 int combine(byte b1, byte b2) {
     // Put the content on the first two bytes of an int
     int combined = b1 << 8 | b2;
@@ -148,19 +143,21 @@ void readController() {
     checkSelectButton(ps2x);
 
     if (mode == RemoteMode) {
-        // Send accelerate?
-        byte LY = ps2x.Analog(PSS_LY);
-        if (isJoystickUpwards(LY)) {
-            // Map the left joystick's Y-coordinate to a percentage before sending the data
-            byte percentage = map(LY, JOYSTICK_CENTER - JOYSTICK_THRESHOLD, PS2_MIN, 0, 100);
-            Serial.print("Will send percentage: ");
-            Serial.println(percentage);
-            int message = combine(Accelerate, percentage);
-            sendRadioMessage(message);
-        }
+        /* Always send both a acceleration and a steering message, since just
+        sending when the joysticks are not in the middle will result in it being
+        impossible to send a 0 % acceleration or steer straight forward message.
+        */
 
-        // Map joystick coordinates to degrees
-        // Always send steering (if it's center it's 90 degrees)
+        // Send accelerate
+        // Map the left joystick's Y-coordinate to a percentage
+        byte percentage = map(ps2x.Analog(PSS_LY), JOYSTICK_CENTER - JOYSTICK_THRESHOLD,
+                              PS2_MIN, 0, 100);
+        Serial.print("Will send percentage: ");
+        Serial.println(percentage);
+        int message = combine(Accelerate, percentage);
+        sendRadioMessage(message);
+
+        // Map right joystick's X-coordinate to a degree between 180 and 0
         byte RX = ps2x.Analog(PSS_RX);
         byte angle;
         if (RX < JOYSTICK_CENTER - JOYSTICK_THRESHOLD) // Right
