@@ -9,25 +9,14 @@
 #include <SPI.h>
 #include <RF24.h>
 #include <MCP41_Simple.h>
-
-#define RADIO_CE  7
-#define RADIO_CSN 8
+#include <RemoteControlRRLib.h>
 
 #define POTENTIOMETER_CS 53
 
-
-RF24 radio(7, 8); // CE, CSN
+RF24 radio(RADIO_CE, RADIO_CSN);
 const byte address[6] = "00001";
 
 MCP41_Simple potentiometer;
-
-// To be sent over radio
-typedef enum MessageType {
-    ManualMode = 0b00000000,
-    RemoteMode = 0b00000001,
-    Steer      = 0b00000100,
-    Accelerate = 0b00000110
-} MessageType;
 
 int mode = ManualMode;
 

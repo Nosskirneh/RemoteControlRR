@@ -9,7 +9,7 @@
 #include <SPI.h>
 #include <RF24.h>
 #include <PS2X_lib.h>
-
+#include <RemoteControlRRLib.h>
 
 // The PS2 joystick and button values varies between 0 and 255.
 #define PS2_MIN            0
@@ -17,18 +17,10 @@
 #define JOYSTICK_CENTER    128
 #define JOYSTICK_THRESHOLD 28
 
-RF24 radio(7, 8); // CE, CSN
+RF24 radio(RADIO_CE, RADIO_CSN);
 const byte address[6] = "00001";
 
 PS2X ps2x;
-
-// To be sent over radio
-typedef enum MessageType {
-    ManualMode = 0b00000000,
-    RemoteMode = 0b00000001,
-    Steer      = 0b00000100,
-    Accelerate = 0b00000110
-} MessageType;
 
 int mode = ManualMode;
 
