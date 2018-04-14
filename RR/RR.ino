@@ -32,6 +32,10 @@ void setup() {
     radio.openReadingPipe(0, address);
     radio.setPALevel(RF24_PA_MIN);
     radio.startListening();
+    Serial.print("Listening radio on ");
+    Serial.print(RADIO_CE);
+    Serial.print(", ");
+    Serial.println(RADIO_CSN);
 
     // Potentiometer
     potentiometer.begin(POTENTIOMETER_CS);

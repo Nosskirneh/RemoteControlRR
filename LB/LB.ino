@@ -38,6 +38,10 @@ void setup() {
     radio.openWritingPipe(address);
     radio.setPALevel(RF24_PA_MIN);
     radio.stopListening();
+    Serial.print("Sending radio on ");
+    Serial.print(RADIO_CE);
+    Serial.print(", ");
+    Serial.println(RADIO_CSN);
 
     // Setup PS2 controller
     int error = ps2x.config_gamepad(PS2_CLK, PS2_CMD, PS2_ATT, PS2_DAT, true, true);
