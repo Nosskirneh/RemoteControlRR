@@ -66,7 +66,7 @@ bool sendRadioMessage(int message) {
     static unsigned long lastTimestamp = 0;
     // RF24 somehow crashes Arduino when sending too fast.
     // Limit it to every 0.1 s. Do not block first call.
-    if (lastTimestamp == 0 || millis() - lastTimestamp > 100) {
+    if (lastTimestamp == 0 || millis() - lastTimestamp > 40) {
         //Serial.print("sending message: ");
         //Serial.println(message, BIN);
         radio.write(&message, sizeof(message));
@@ -140,38 +140,46 @@ void readController() {
         impossible to send a 0 % acceleration or steer straight forward message.
         */
 
+        static bool lastSentMessage = false;
+
         int message;
 
-        // Send accelerate
-        // Map the left joystick's Y-coordinate to a percentage
-        byte LY = ps2x.Analog(PSS_LY);
-        byte percentage;
-        if (LY < JOYSTICK_CENTER - JOYSTICK_THRESHOLD)
-            percentage = map(LY, JOYSTICK_CENTER - JOYSTICK_THRESHOLD, PS2_MIN, 0, 100);
-        else
-            percentage = 0;
-        Serial.print("Will send percentage: ");
-        Serial.println(percentage);
-        message = combine(Accelerate, percentage);
-        sendRadioMessage(message);
+        if (lastSentMessage != true) {
+            // Send accelerate
+            // Map the left joystick's Y-coordinate to a percentage
+            byte LY = ps2x.Analog(PSS_LY);
+            byte percentage;
+            if (LY < JOYSTICK_CENTER - JOYSTICK_THRESHOLD)
+                percentage = map(LY, JOYSTICK_CENTER - JOYSTICK_THRESHOLD, PS2_MIN, 0, 100);
+            else
+                percentage = 0;
+            message = combine(Accelerate, percentage);
+        } else {
+            // Map right joystick's X-coordinate to a degree between 180 and 0
+            byte RX = ps2x.Analog(PSS_RX);
+            byte angle;
+            if (RX < JOYSTICK_CENTER - JOYSTICK_THRESHOLD) // Right
+                angle = map(RX, PS2_MIN, JOYSTICK_CENTER - JOYSTICK_THRESHOLD, 180, 90);
+            else if (RX > JOYSTICK_CENTER + JOYSTICK_THRESHOLD) // Left
+                angle = map(RX, JOYSTICK_CENTER + JOYSTICK_THRESHOLD, PS2_MAX, 90, 0);
+            else // Center
+                angle = 90;
+            message = combine(Steer, angle);
+        }
 
-        // Map right joystick's X-coordinate to a degree between 180 and 0
-        byte RX = ps2x.Analog(PSS_RX);
-        byte angle;
-        if (RX < JOYSTICK_CENTER - JOYSTICK_THRESHOLD) // Right
-            angle = map(RX, PS2_MIN, JOYSTICK_CENTER - JOYSTICK_THRESHOLD, 180, 90);
-        else if (RX > JOYSTICK_CENTER + JOYSTICK_THRESHOLD) // Left
-            angle = map(RX, JOYSTICK_CENTER + JOYSTICK_THRESHOLD, PS2_MAX, 90, 0);
-        else // Center
-            angle = 90;
-        Serial.print("Will send steering angle: ");
-        Serial.println(angle);
-        message = combine(Steer, angle);
-        sendRadioMessage(message);
+        if (sendRadioMessage(message)) {
+            if ((message >> 8 & 0xFF) == Accelerate) {
+                Serial.print("Will send percentage: ");
+            } else {
+                Serial.print("Will send steering angle: ");
+            }
+            Serial.println(message & 0xFF);
+            lastSentMessage = !lastSentMessage;   
+        }
+
     }
 }
 
 void loop() {
-    delay(40);
     readController();
 }
