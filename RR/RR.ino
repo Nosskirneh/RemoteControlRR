@@ -13,6 +13,11 @@
 
 #define POTENTIOMETER_CS 53
 
+#define MOTOR_SPEED  9
+#define MOTOR_CW     6
+#define MOTOR_CCW    5
+
+
 RF24 radio(RADIO_CE, RADIO_CSN);
 const byte address[6] = "00001";
 
@@ -31,12 +36,35 @@ void setup() {
     // Potentiometer
     potentiometer.begin(POTENTIOMETER_CS);
     potentiometer.setWiper(0);
+
+    // Motor
+    pinMode(MOTOR_SPEED, OUTPUT);
+    pinMode(MOTOR_CW, OUTPUT);
+    pinMode(MOTOR_CCW, OUTPUT);
 }
 
 int nextRadioMessage() {
     int message;
     radio.read(&message, sizeof(message));
     return message;
+}
+
+void updateSteeringValue(int angle) {
+    if (angle >= 0 && angle < 90) { // Right
+        digitalWrite(MOTOR_CW, HIGH);
+        digitalWrite(MOTOR_CCW, LOW);
+        int speed = map(angle, 90, 0, 0, 255);
+        analogWrite(MOTOR_SPEED, speed);
+    } else if (angle > 90 && angle <= 180) { // Left
+        digitalWrite(MOTOR_CW, LOW);
+        digitalWrite(MOTOR_CCW, HIGH);
+        int speed = map(angle, 90, 180, 0, 255);
+        analogWrite(MOTOR_SPEED, speed);
+    } else { // Center
+        digitalWrite(MOTOR_CW, LOW);
+        digitalWrite(MOTOR_CCW, LOW);
+        analogWrite(MOTOR_SPEED, 0);
+    }
 }
 
 void updateAccelerationValue(int acc) {
@@ -65,20 +93,22 @@ void readRadio() {
             Serial.println(mode);
         } else if (header == Steer) {
             mode = RemoteMode;
-            Serial.print("Read steering message: ");
             int angle = message & 0xFF;
+            updateSteeringValue(angle);
+            Serial.print("Read steering message: ");
             Serial.println(angle, DEC);
         } else if (header == Accelerate) {
             mode = RemoteMode;
-            Serial.print("Read accelerate message: ");
             int acc = message & 0xFF;
             updateAccelerationValue(acc);
+            Serial.print("Read accelerate message: ");
             Serial.println(acc);
         }
     } else if (mode != ManualMode && millis() - lastMessageReceivedTime > 5000) {
         Serial.println("No radio messages received for 5 seconds, falling back to manual mode!");
         mode = ManualMode;
         updateAccelerationValue(0);
+        updateSteeringValue(90);
     }
 }
 
