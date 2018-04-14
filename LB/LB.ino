@@ -24,9 +24,9 @@ PS2X ps2x;
 
 int mode = ManualMode;
 
-#define PS2_CLK 22
+#define PS2_CLK 24
 #define PS2_CMD 23
-#define PS2_ATT 24
+#define PS2_ATT 22
 #define PS2_DAT 25
 
 
