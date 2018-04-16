@@ -17,6 +17,15 @@
 #define MOTOR_CW     6
 #define MOTOR_CCW    5
 
+#define RELAY1  32
+#define RELAY2  33
+#define RELAY3  34
+#define RELAY4  35
+#define RELAY5  36
+#define RELAY6  37
+#define RELAY7  38
+#define RELAY8  39
+
 
 RF24 radio(RADIO_CE, RADIO_CSN);
 const byte address[6] = "00001";
@@ -45,6 +54,11 @@ void setup() {
     pinMode(MOTOR_SPEED, OUTPUT);
     pinMode(MOTOR_CW, OUTPUT);
     pinMode(MOTOR_CCW, OUTPUT);
+
+    // Relays
+    for (int i = RELAY1; i <= RELAY8; i++)
+        pinMode(i, OUTPUT);
+    turnRelaysOff();
 }
 
 // Fetch the next radio message
@@ -87,6 +101,14 @@ double percentageToStep(double percentage) {
     return percentage * 0.88 + 20;
 }
 
+// Enable RemoteMode if it isn't enabled already
+void enableRemoteMode() {
+    if (mode != RemoteMode) {
+        mode = RemoteMode;
+        turnRelaysOn();
+    }
+}
+
 // Check for new messages and process each of them
 void readRadio() {
     static unsigned long lastMessageReceivedTime = 0;
@@ -97,18 +119,23 @@ void readRadio() {
 
         // Mask out the header (first 8 bits)
         int header = message >> 8 & 0xFF;
-        if (header == ManualMode || header == RemoteMode) {
+        if (header == ManualMode) {
             mode = header;
             Serial.print("Read changed mode to: ");
             Serial.println(mode);
+            turnRelaysOff();
+        } else if (header == RemoteMode) {
+            enableRemoteMode();
+            Serial.print("Read changed mode to: ");
+            Serial.println(mode);
         } else if (header == Steer) {
-            mode = RemoteMode;
+            enableRemoteMode();
             int angle = message & 0xFF;
             updateSteeringValue(angle);
             Serial.print("Read steering message: ");
             Serial.println(angle, DEC);
         } else if (header == Accelerate) {
-            mode = RemoteMode;
+            enableRemoteMode();
             int acc = message & 0xFF;
             updateAccelerationValue(acc);
             Serial.print("Read accelerate message: ");
@@ -119,7 +146,20 @@ void readRadio() {
         mode = ManualMode;
         updateAccelerationValue(0);
         updateSteeringValue(90);
+        turnRelaysOff();
     }
+}
+
+// Turns Relay 1 to 6 on
+void turnRelaysOff() {
+    for (int i = RELAY1; i <= RELAY6; i++)
+        digitalWrite(i, HIGH);
+}
+
+// Turns Relay 1 to 6 off
+void turnRelaysOn() {
+    for (int i = RELAY1; i <= RELAY6; i++)
+        digitalWrite(i, LOW);
 }
 
 void loop() {
