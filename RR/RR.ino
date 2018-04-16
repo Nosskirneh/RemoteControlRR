@@ -47,12 +47,15 @@ void setup() {
     pinMode(MOTOR_CCW, OUTPUT);
 }
 
+// Fetch the next radio message
 int nextRadioMessage() {
     int message;
     radio.read(&message, sizeof(message));
     return message;
 }
 
+// Given an angle (0 - 180 degrees), either turn left, right or not at all
+// To be replaced with a PID
 void updateSteeringValue(int angle) {
     if (angle >= 0 && angle < 90) { // Right
         digitalWrite(MOTOR_CW, HIGH);
@@ -71,6 +74,7 @@ void updateSteeringValue(int angle) {
     }
 }
 
+// Send acceleration value to the digital potentiometer
 void updateAccelerationValue(int acc) {
     if (acc >= 0 && acc <= 100) {
         double wiper = percentageToStep(acc);
@@ -78,10 +82,12 @@ void updateAccelerationValue(int acc) {
     }
 }
 
+// Help method that returns the value that the ECM of the Rescue Runner
 double percentageToStep(double percentage) {
     return percentage * 0.88 + 20;
 }
 
+// Check for new messages and process each of them
 void readRadio() {
     static unsigned long lastMessageReceivedTime = 0;
     if (radio.available()) {
