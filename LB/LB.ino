@@ -157,16 +157,12 @@ void readController() {
                 percentage = 0;
             message = combine(Accelerate, percentage);
         } else {
-            // Map right joystick's X-coordinate to a degree between 180 and 0
+            // Send steering
             byte RX = ps2x.Analog(PSS_RX);
-            byte angle;
-            if (RX < JOYSTICK_CENTER - JOYSTICK_THRESHOLD) // Right
-                angle = map(RX, PS2_MIN, JOYSTICK_CENTER - JOYSTICK_THRESHOLD, 180, 90);
-            else if (RX > JOYSTICK_CENTER + JOYSTICK_THRESHOLD) // Left
-                angle = map(RX, JOYSTICK_CENTER + JOYSTICK_THRESHOLD, PS2_MAX, 90, 0);
-            else // Center
-                angle = 90;
-            message = combine(Steer, angle);
+            // Prevent small deviations from center
+            if (JOYSTICK_THRESHOLD > abs(JOYSTICK_CENTER - RX))
+                RX = JOYSTICK_CENTER;
+            message = combine(Steer, RX);
         }
 
         if (sendRadioMessage(message)) {
