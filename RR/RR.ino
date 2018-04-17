@@ -26,8 +26,8 @@
 #define RELAY7  38
 #define RELAY8  39
 
-#define PID_Kp 2
-#define PID_Ki 1
+#define PID_Kp 3
+#define PID_Ki 0
 #define PID_Kd 0
 #define PID_Tf 0.04
 #define PID_SAMPLE_TIME 0.1 // seconds
@@ -71,6 +71,8 @@ void setup() {
 
     // Steering sensor
     pinMode(STEERING_SENSOR, INPUT);
+
+    runBenchmark();
 }
 
 // Fetch the next radio message
@@ -157,9 +159,9 @@ void turnRelaysOn() {
         digitalWrite(i, LOW);
 }
 
-int getSteeringAngle() {
+int getSteeringValue() {
     int value = analogRead(STEERING_SENSOR);
-    return map(value, STEERING_SENSOR_LOW + 100, STEERING_SENSOR_HIGH - 100, 0, 255);
+    return map(value, STEERING_SENSOR_LOW, STEERING_SENSOR_HIGH, 0, 255);
 }
 
 double calculatePID() {
@@ -176,7 +178,7 @@ double calculatePID() {
         static int e_old = 0;
 
         // Calculate the error
-        int e = steeringRef - getSteeringAngle();
+        int e = steeringRef - getSteeringValue();
 
         D = PID_Tf / (PID_Tf + PID_SAMPLE_TIME) * D + PID_Kd / (PID_Tf + PID_SAMPLE_TIME) * (e - e_old);
         P = PID_Kp * e;
@@ -194,20 +196,54 @@ double calculatePID() {
 
 void updateMotor(double speed) {
     if (speed > 0) { // Right
-        Serial.print("Right: ");
+        //Serial.print("Right: ");
         digitalWrite(MOTOR_CW, HIGH);
         digitalWrite(MOTOR_CCW, LOW);
     } else if (speed < 0) { // Left
-        Serial.print("Left: ");
+        //Serial.print("Left: ");
         digitalWrite(MOTOR_CW, LOW);
         digitalWrite(MOTOR_CCW, HIGH);
     } else { // Center
-        Serial.print("Center: ");
+        //Serial.print("Center: ");
         digitalWrite(MOTOR_CW, LOW);
         digitalWrite(MOTOR_CCW, LOW);
     }
-    Serial.println(abs(speed));
+    //Serial.println(abs(speed));
     analogWrite(MOTOR_SPEED, abs(speed));
+}
+
+void runBenchmark() {
+    Serial.println("Benchmark has begun...");
+    steeringRef = 0;
+
+    while (abs(steeringRef - getSteeringValue()) > 1) {
+        Serial.print("1: SteeringValue :");
+        Serial.print(getSteeringValue());
+        Serial.print(", ");
+        Serial.print("ref: ");
+        Serial.println(steeringRef);
+        updateMotor(calculatePID());
+    }
+
+    delay(1000);
+
+    // Motor is at end point
+    steeringRef = 255;
+    double timeStart = millis();
+
+    while (abs(steeringRef - getSteeringValue()) > 1) {
+        Serial.print("2: SteeringValue :");
+        Serial.print(getSteeringValue());
+        Serial.print(", ");
+        Serial.print("ref: ");
+        Serial.println(steeringRef);
+        updateMotor(calculatePID());
+    }
+
+    double totalTime = millis() - timeStart;
+    Serial.print("End to end took ");
+    Serial.println(totalTime / 1000);
+    delay(1000);
 }
 
 void loop() {
