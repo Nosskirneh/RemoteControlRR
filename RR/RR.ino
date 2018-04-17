@@ -26,12 +26,22 @@
 #define RELAY7  38
 #define RELAY8  39
 
+#define PID_Kp 2
+#define PID_Ki 1
+#define PID_Kd 0
+#define PID_Tf 0.04
+#define PID_SAMPLE_TIME 0.1 // seconds
+
+#define STEERING_SENSOR      A11
+#define STEERING_SENSOR_LOW  0
+#define STEERING_SENSOR_HIGH 1024
 
 
 RF24 radio(RADIO_CE, RADIO_CSN);
 MCP41_Simple potentiometer;
 
 int mode = ManualMode;
+int steeringRef = -1;
 
 void setup() {
     Serial.begin(9600);
@@ -58,6 +68,9 @@ void setup() {
     for (int i = RELAY1; i <= RELAY8; i++)
         pinMode(i, OUTPUT);
     turnRelaysOff();
+
+    // Steering sensor
+    pinMode(STEERING_SENSOR, INPUT);
 }
 
 // Fetch the next radio message
@@ -65,26 +78,6 @@ int nextRadioMessage() {
     int message;
     radio.read(&message, sizeof(message));
     return message;
-}
-
-// Given an angle (0 - 180 degrees), either turn left, right or not at all
-// To be replaced with a PID
-void updateSteeringValue(int angle) {
-    if (angle >= 0 && angle < 90) { // Right
-        digitalWrite(MOTOR_CW, HIGH);
-        digitalWrite(MOTOR_CCW, LOW);
-        int speed = map(angle, 90, 0, 0, 255);
-        analogWrite(MOTOR_SPEED, speed);
-    } else if (angle > 90 && angle <= 180) { // Left
-        digitalWrite(MOTOR_CW, LOW);
-        digitalWrite(MOTOR_CCW, HIGH);
-        int speed = map(angle, 90, 180, 0, 255);
-        analogWrite(MOTOR_SPEED, speed);
-    } else { // Center
-        digitalWrite(MOTOR_CW, LOW);
-        digitalWrite(MOTOR_CCW, LOW);
-        analogWrite(MOTOR_SPEED, 0);
-    }
 }
 
 // Send acceleration value to the digital potentiometer
@@ -108,6 +101,14 @@ void enableRemoteMode() {
     }
 }
 
+// Enable ManualMode
+void enableManualMode() {
+    mode = ManualMode;
+    updateAccelerationValue(0);
+    updateMotor(0);
+    turnRelaysOff();
+}
+
 // Check for new messages and process each of them
 void readRadio() {
     static unsigned long lastMessageReceivedTime = 0;
@@ -119,20 +120,18 @@ void readRadio() {
         // Mask out the header (first 8 bits)
         int header = message >> 8 & 0xFF;
         if (header == ManualMode) {
-            mode = header;
             Serial.print("Read changed mode to: ");
             Serial.println(mode);
-            turnRelaysOff();
+            enableManualMode();
         } else if (header == RemoteMode) {
             enableRemoteMode();
             Serial.print("Read changed mode to: ");
             Serial.println(mode);
         } else if (header == Steer) {
             enableRemoteMode();
-            int angle = message & 0xFF;
-            updateSteeringValue(angle);
+            steeringRef = message & 0xFF;
             Serial.print("Read steering message: ");
-            Serial.println(angle, DEC);
+            Serial.println(steeringRef, DEC);
         } else if (header == Accelerate) {
             enableRemoteMode();
             int acc = message & 0xFF;
@@ -142,10 +141,7 @@ void readRadio() {
         }
     } else if (mode != ManualMode && millis() - lastMessageReceivedTime > 5000) {
         Serial.println("No radio messages received for 5 seconds, falling back to manual mode!");
-        mode = ManualMode;
-        updateAccelerationValue(0);
-        updateSteeringValue(90);
-        turnRelaysOff();
+        enableManualMode();
     }
 }
 
@@ -161,7 +157,64 @@ void turnRelaysOn() {
         digitalWrite(i, LOW);
 }
 
+int getSteeringAngle() {
+    int value = analogRead(STEERING_SENSOR);
+    return map(value, STEERING_SENSOR_LOW + 100, STEERING_SENSOR_HIGH - 100, 0, 255);
+}
+
+double calculatePID() {
+    static double output = 0;
+    static unsigned long lastTimestamp = 0;
+
+    if (millis() - lastTimestamp > PID_SAMPLE_TIME * 1000) {
+        lastTimestamp = millis();
+        // Initial values
+        static double P = 0.0;
+        static double I = 0.0;
+        static double D = 0.0;
+
+        static int e_old = 0;
+
+        // Calculate the error
+        int e = steeringRef - getSteeringAngle();
+
+        D = PID_Tf / (PID_Tf + PID_SAMPLE_TIME) * D + PID_Kd / (PID_Tf + PID_SAMPLE_TIME) * (e - e_old);
+        P = PID_Kp * e;
+        double u = P + D + I; // Calculate control output
+        // Calculate next I value
+        I = I + PID_Ki * PID_SAMPLE_TIME * e;
+
+        e_old = e;
+
+        // Make sure the calculated output is within limit
+        return output = constrain(u, -255.0, 255.0);
+    }
+    return output;
+}
+
+void updateMotor(double speed) {
+    if (speed > 0) { // Right
+        Serial.print("Right: ");
+        digitalWrite(MOTOR_CW, HIGH);
+        digitalWrite(MOTOR_CCW, LOW);
+    } else if (speed < 0) { // Left
+        Serial.print("Left: ");
+        digitalWrite(MOTOR_CW, LOW);
+        digitalWrite(MOTOR_CCW, HIGH);
+    } else { // Center
+        Serial.print("Center: ");
+        digitalWrite(MOTOR_CW, LOW);
+        digitalWrite(MOTOR_CCW, LOW);
+    }
+    Serial.println(abs(speed));
+    analogWrite(MOTOR_SPEED, abs(speed));
+}
+
 void loop() {
-    delay(100);
     readRadio();
+
+    if (mode == RemoteMode) {
+        // Run PID here
+        updateMotor(calculatePID());
+    }
 }
