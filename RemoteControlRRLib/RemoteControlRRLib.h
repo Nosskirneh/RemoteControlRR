@@ -8,3 +8,5 @@ typedef enum MessageType {
     Steer      = 0b00000100,
     Accelerate = 0b00000110
 } MessageType;
+
+const byte RADIO_ADDRESS[6] = "00001";

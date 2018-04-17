@@ -27,9 +27,8 @@
 #define RELAY8  39
 
 
-RF24 radio(RADIO_CE, RADIO_CSN);
-const byte address[6] = "00001";
 
+RF24 radio(RADIO_CE, RADIO_CSN);
 MCP41_Simple potentiometer;
 
 int mode = ManualMode;
@@ -38,7 +37,7 @@ void setup() {
     Serial.begin(9600);
     // Radio
     radio.begin();
-    radio.openReadingPipe(0, address);
+    radio.openReadingPipe(0, RADIO_ADDRESS);
     radio.setPALevel(RF24_PA_MIN);
     radio.startListening();
     Serial.print("Listening radio on ");

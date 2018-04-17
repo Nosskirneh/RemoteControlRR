@@ -18,8 +18,6 @@
 #define JOYSTICK_THRESHOLD 28
 
 RF24 radio(RADIO_CE, RADIO_CSN);
-const byte address[6] = "00001";
-
 PS2X ps2x;
 
 int mode = ManualMode;
@@ -35,7 +33,7 @@ void setup() {
 
     // Setup radio
     radio.begin();
-    radio.openWritingPipe(address);
+    radio.openWritingPipe(RADIO_ADDRESS);
     radio.setPALevel(RF24_PA_MIN);
     radio.stopListening();
     Serial.print("Sending radio on ");
