@@ -13,18 +13,18 @@
 
 #define POTENTIOMETER_CS 53
 
-#define MOTOR_SPEED  9
-#define MOTOR_CW     6
-#define MOTOR_CCW    5
+#define MOTOR_SPEED  45 // motor card pin 9
+#define MOTOR_CW     44 // motor card pin 6
+#define MOTOR_CCW    46 // motor card pin 7
 
-#define RELAY1  32
-#define RELAY2  33
-#define RELAY3  34
-#define RELAY4  35
-#define RELAY5  36
-#define RELAY6  37
-#define RELAY7  38
-#define RELAY8  39
+#define RELAY1  24
+#define RELAY2  25
+#define RELAY3  26
+#define RELAY4  27
+#define RELAY5  28
+#define RELAY6  29
+#define RELAY7  30
+#define RELAY8  31
 
 #define PID_Kp 3
 #define PID_Ki 0
@@ -72,7 +72,7 @@ void setup() {
     // Steering sensor
     pinMode(STEERING_SENSOR, INPUT);
 
-    runBenchmark();
+    //runBenchmark();
 }
 
 // Fetch the next radio message
