@@ -26,15 +26,15 @@
 #define RELAY7  30
 #define RELAY8  31
 
-#define PID_Kp 3
-#define PID_Ki 0
+#define PID_Kp 1
+#define PID_Ki 0.5
 #define PID_Kd 0
 #define PID_Tf 0.04
 #define PID_SAMPLE_TIME 0.1 // seconds
 
 #define STEERING_SENSOR      A11
-#define STEERING_SENSOR_LOW  0
-#define STEERING_SENSOR_HIGH 1024
+#define STEERING_SENSOR_LOW  500  // 544
+#define STEERING_SENSOR_HIGH 50   // 0
 
 
 RF24 radio(RADIO_CE, RADIO_CSN);
