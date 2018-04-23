@@ -33,8 +33,8 @@
 #define PID_SAMPLE_TIME 0.1 // seconds
 
 #define STEERING_SENSOR      A11
-#define STEERING_SENSOR_LOW  500  // 544
-#define STEERING_SENSOR_HIGH 50   // 0
+#define STEERING_SENSOR_LOW  630  // 666
+#define STEERING_SENSOR_HIGH 40   // 29
 
 
 RF24 radio(RADIO_CE, RADIO_CSN);
