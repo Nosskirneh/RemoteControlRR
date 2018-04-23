@@ -50,10 +50,10 @@ void setup() {
     radio.openReadingPipe(0, RADIO_ADDRESS);
     radio.setPALevel(RF24_PA_MIN);
     radio.startListening();
-    Serial.print("Listening radio on ");
-    Serial.print(RADIO_CE);
-    Serial.print(", ");
-    Serial.println(RADIO_CSN);
+    DEBUG_PRINT("Listening radio on ");
+    DEBUG_PRINT(RADIO_CE);
+    DEBUG_PRINT(", ");
+    DEBUG_PRINTLN(RADIO_CSN);
 
     // Potentiometer
     potentiometer.begin(POTENTIOMETER_CS);
@@ -117,32 +117,32 @@ void readRadio() {
     if (radio.available()) {
         lastMessageReceivedTime = millis();
         int message = nextRadioMessage();
-        Serial.println(message, BIN);
+        DEBUG_PRINTLN(message, BIN);
 
         // Mask out the header (first 8 bits)
         int header = message >> 8 & 0xFF;
         if (header == ManualMode) {
-            Serial.print("Read changed mode to: ");
-            Serial.println(mode);
+            DEBUG_PRINT("Read changed mode to: ");
+            DEBUG_PRINTLN(mode);
             enableManualMode();
         } else if (header == RemoteMode) {
             enableRemoteMode();
-            Serial.print("Read changed mode to: ");
-            Serial.println(mode);
+            DEBUG_PRINT("Read changed mode to: ");
+            DEBUG_PRINTLN(mode);
         } else if (header == Steer) {
             enableRemoteMode();
             steeringRef = message & 0xFF;
-            Serial.print("Read steering message: ");
-            Serial.println(steeringRef, DEC);
+            DEBUG_PRINT("Read steering message: ");
+            DEBUG_PRINTLN(steeringRef, DEC);
         } else if (header == Accelerate) {
             enableRemoteMode();
             int acc = message & 0xFF;
             updateAccelerationValue(acc);
-            Serial.print("Read accelerate message: ");
-            Serial.println(acc);
+            DEBUG_PRINT("Read accelerate message: ");
+            DEBUG_PRINTLN(acc);
         }
     } else if (mode != ManualMode && millis() - lastMessageReceivedTime > 5000) {
-        Serial.println("No radio messages received for 5 seconds, falling back to manual mode!");
+        DEBUG_PRINTLN("No radio messages received for 5 seconds, falling back to manual mode!");
         enableManualMode();
     }
 }
@@ -196,32 +196,32 @@ double calculatePID() {
 
 void updateMotor(double speed) {
     if (speed > 0) { // Right
-        //Serial.print("Right: ");
+        //DEBUG_PRINT("Right: ");
         digitalWrite(MOTOR_CW, HIGH);
         digitalWrite(MOTOR_CCW, LOW);
     } else if (speed < 0) { // Left
-        //Serial.print("Left: ");
+        //DEBUG_PRINT("Left: ");
         digitalWrite(MOTOR_CW, LOW);
         digitalWrite(MOTOR_CCW, HIGH);
     } else { // Center
-        //Serial.print("Center: ");
+        //DEBUG_PRINT("Center: ");
         digitalWrite(MOTOR_CW, LOW);
         digitalWrite(MOTOR_CCW, LOW);
     }
-    //Serial.println(abs(speed));
+    //DEBUG_PRINTLN(abs(speed));
     analogWrite(MOTOR_SPEED, abs(speed));
 }
 
 void runBenchmark() {
-    Serial.println("Benchmark has begun...");
+    DEBUG_PRINTLN("Benchmark has begun...");
     steeringRef = 0;
 
     while (abs(steeringRef - getSteeringValue()) > 1) {
-        Serial.print("1: SteeringValue :");
-        Serial.print(getSteeringValue());
-        Serial.print(", ");
-        Serial.print("ref: ");
-        Serial.println(steeringRef);
+        DEBUG_PRINT("1: SteeringValue :");
+        DEBUG_PRINT(getSteeringValue());
+        DEBUG_PRINT(", ");
+        DEBUG_PRINT("ref: ");
+        DEBUG_PRINTLN(steeringRef);
         updateMotor(calculatePID());
     }
 
@@ -232,17 +232,17 @@ void runBenchmark() {
     double timeStart = millis();
 
     while (abs(steeringRef - getSteeringValue()) > 1) {
-        Serial.print("2: SteeringValue :");
-        Serial.print(getSteeringValue());
-        Serial.print(", ");
-        Serial.print("ref: ");
-        Serial.println(steeringRef);
+        DEBUG_PRINT("2: SteeringValue :");
+        DEBUG_PRINT(getSteeringValue());
+        DEBUG_PRINT(", ");
+        DEBUG_PRINT("ref: ");
+        DEBUG_PRINTLN(steeringRef);
         updateMotor(calculatePID());
     }
 
     double totalTime = millis() - timeStart;
-    Serial.print("End to end took ");
-    Serial.println(totalTime / 1000);
+    DEBUG_PRINT("End to end took ");
+    DEBUG_PRINTLN(totalTime / 1000);
     delay(1000);
 }
 

@@ -36,10 +36,10 @@ void setup() {
     radio.openWritingPipe(RADIO_ADDRESS);
     radio.setPALevel(RF24_PA_MIN);
     radio.stopListening();
-    Serial.print("Sending radio on ");
-    Serial.print(RADIO_CE);
-    Serial.print(", ");
-    Serial.println(RADIO_CSN);
+    DEBUG_PRINT("Sending radio on ");
+    DEBUG_PRINT(RADIO_CE);
+    DEBUG_PRINT(", ");
+    DEBUG_PRINTLN(RADIO_CSN);
 
     // Setup PS2 controller
     int error = ps2x.config_gamepad(PS2_CLK, PS2_CMD, PS2_ATT, PS2_DAT, true, true);
@@ -54,7 +54,7 @@ void setup() {
     ps2x.enableRumble();
     ps2x.enablePressures();
 
-    Serial.println("Everything went OK!");
+    DEBUG_PRINTLN("Everything went OK!");
     sendVibratePulse();
 }
 
@@ -69,8 +69,8 @@ bool sendRadioMessage(int message) {
     // RF24 somehow crashes Arduino when sending too fast.
     // Limit it to every 0.1 s. Do not block first call.
     if (lastTimestamp == 0 || millis() - lastTimestamp > 40) {
-        //Serial.print("sending message: ");
-        //Serial.println(message, BIN);
+        //DEBUG_PRINT("sending message: ");
+        //DEBUG_PRINTLN(message, BIN);
         radio.write(&message, sizeof(message));
         lastTimestamp = millis();
         return true;
@@ -79,7 +79,7 @@ bool sendRadioMessage(int message) {
 }
 
 void sendVibratePulse() {
-    Serial.println("Vibrate!");
+    DEBUG_PRINTLN("Vibrate!");
     ps2x.read_gamepad(false, PS2_MAX); // Vibrate
     delay(300);
     ps2x.read_gamepad(false, 0);       // Stop vibrate
@@ -97,7 +97,7 @@ void checkSelectButton(PS2X ps2x) {
 
         // Has button been pressed for 0.2 seconds?
         if (millis() - firstButtonTime > 200) {
-            Serial.println("Button held for at least 0.2 s");
+            DEBUG_PRINTLN("Button held for at least 0.2 s");
 
             // Switch mode
             if (mode == ManualMode) {
@@ -105,14 +105,14 @@ void checkSelectButton(PS2X ps2x) {
             } else {
                 mode = ManualMode;
             }
-            Serial.print("Changing mode to: ");
-            Serial.println(mode);
+            DEBUG_PRINT("Changing mode to: ");
+            DEBUG_PRINTLN(mode);
 
             // Change of mode is far more important to send than
             // an accelerate/steering message (the latter are
             // repeating itself whilst change of mode is not).
             while (!sendRadioMessage(mode)) {
-                Serial.println("Radio chip busy... trying again!");
+                DEBUG_PRINTLN("Radio chip busy... trying again!");
             }
 
             // Vibrate and delay!
@@ -137,7 +137,7 @@ void readController() {
     checkSelectButton(ps2x);
 
     if (mode == RemoteMode) {
-        /* Always send both a acceleration and a steering message, since just
+        /* Always send both acceleration and steering messages, since just
         sending when the joysticks are not in the middle will result in it being
         impossible to send a 0 % acceleration or steer straight forward message.
         */
@@ -173,11 +173,11 @@ void readController() {
         // Send it
         if (sendRadioMessage(message)) {
             if ((message >> 8 & 0xFF) == Accelerate) {
-                Serial.print("Will send percentage: ");
+                DEBUG_PRINT("Will send percentage: ");
             } else {
-                Serial.print("Will send steering angle: ");
+                DEBUG_PRINT("Will send steering angle: ");
             }
-            Serial.println(message & 0xFF);
+            DEBUG_PRINTLN(message & 0xFF);
             lastSentMessage = !lastSentMessage;   
         }
     }
