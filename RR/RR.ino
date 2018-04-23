@@ -117,7 +117,7 @@ void readRadio() {
     if (radio.available()) {
         lastMessageReceivedTime = millis();
         int message = nextRadioMessage();
-        DEBUG_PRINTLN(message, BIN);
+        DEBUG_PRINTLN(message);
 
         // Mask out the header (first 8 bits)
         int header = message >> 8 & 0xFF;
@@ -133,7 +133,7 @@ void readRadio() {
             enableRemoteMode();
             steeringRef = message & 0xFF;
             DEBUG_PRINT("Read steering message: ");
-            DEBUG_PRINTLN(steeringRef, DEC);
+            DEBUG_PRINTLN(steeringRef);
         } else if (header == Accelerate) {
             enableRemoteMode();
             int acc = message & 0xFF;
