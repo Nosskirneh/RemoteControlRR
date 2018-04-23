@@ -216,7 +216,7 @@ void runBenchmark() {
     DEBUG_PRINTLN("Benchmark has begun...");
     steeringRef = 0;
 
-    while (abs(steeringRef - getSteeringValue()) > 1) {
+    while (abs(steeringRef - getSteeringValue()) > 10) {
         DEBUG_PRINT("1: SteeringValue :");
         DEBUG_PRINT(getSteeringValue());
         DEBUG_PRINT(", ");
@@ -231,7 +231,7 @@ void runBenchmark() {
     steeringRef = 255;
     double timeStart = millis();
 
-    while (abs(steeringRef - getSteeringValue()) > 1) {
+    while (abs(steeringRef - getSteeringValue()) > 10) {
         DEBUG_PRINT("2: SteeringValue :");
         DEBUG_PRINT(getSteeringValue());
         DEBUG_PRINT(", ");
