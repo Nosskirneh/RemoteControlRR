@@ -146,8 +146,9 @@ void readController() {
 
         int message;
 
+        // Create message
         if (lastSentMessage != true) {
-            // Send accelerate
+            // Accelerate
             // Map the left joystick's Y-coordinate to a percentage
             byte LY = ps2x.Analog(PSS_LY);
             byte percentage;
@@ -157,14 +158,19 @@ void readController() {
                 percentage = 0;
             message = combine(Accelerate, percentage);
         } else {
-            // Send steering
+            // Steering
             byte RX = ps2x.Analog(PSS_RX);
             // Prevent small deviations from center
-            if (JOYSTICK_THRESHOLD > abs(JOYSTICK_CENTER - RX))
+            if (RX < JOYSTICK_CENTER - JOYSTICK_THRESHOLD) // Right
+                RX = map(RX, PS2_MIN, JOYSTICK_CENTER - JOYSTICK_THRESHOLD, PS2_MIN, JOYSTICK_CENTER);
+            else if (RX > JOYSTICK_CENTER + JOYSTICK_THRESHOLD) // Left
+                RX = map(RX, JOYSTICK_CENTER + JOYSTICK_THRESHOLD, PS2_MAX, JOYSTICK_CENTER, PS2_MAX);
+            else // Center
                 RX = JOYSTICK_CENTER;
             message = combine(Steer, RX);
         }
 
+        // Send it
         if (sendRadioMessage(message)) {
             if ((message >> 8 & 0xFF) == Accelerate) {
                 Serial.print("Will send percentage: ");
@@ -174,7 +180,6 @@ void readController() {
             Serial.println(message & 0xFF);
             lastSentMessage = !lastSentMessage;   
         }
-
     }
 }
 
