@@ -37,10 +37,8 @@ void setup() {
     radio.setPALevel(RF24_PA_MAX);
     radio.setDataRate(RF24_250KBPS);
     radio.stopListening();
-    DEBUG_PRINT("Sending radio on ");
-    DEBUG_PRINT(RADIO_CE);
-    DEBUG_PRINT(", ");
-    DEBUG_PRINTLN(RADIO_CSN);
+    sprintf(logMsg, "Sending radio on pins: %d, %d", RADIO_CE, RADIO_CSN);
+    DEBUG_PRINTLN(logMsg);
 
     // Setup PS2 controller
     int error = ps2x.config_gamepad(PS2_CLK, PS2_CMD, PS2_ATT, PS2_DAT, true, true);
@@ -56,7 +54,7 @@ void setup() {
     ps2x.enablePressures();
 
     DEBUG_PRINTLN("Everything went OK!");
-    sendVibratePulse();
+    sendVibratePulse(300);
 }
 
 int combine(byte b1, byte b2) {
@@ -65,13 +63,20 @@ int combine(byte b1, byte b2) {
     return combined;
 }
 
-bool sendRadioMessage(int message) {
+
+// Change of mode and other messages are far more important to send than an
+// accelerate/steering message (the latter are repeating itself whilst change of
+// mode is not).
+void sendRadioMessage(int message) {
+    while (!trySendRadioMessage(message))
+        DEBUG_PRINTLN("Radio chip busy... trying again!");
+}
+
+bool trySendRadioMessage(int message) {
     static unsigned long lastTimestamp = 0;
     // RF24 somehow crashes Arduino when sending too fast.
-    // Limit it to every 0.1 s. Do not block first call.
+    // Limit it to every 0.04 s. Do not block first call.
     if (lastTimestamp == 0 || millis() - lastTimestamp > 40) {
-        //DEBUG_PRINT("sending message: ");
-        //DEBUG_PRINTLN(message, BIN);
         radio.write(&message, sizeof(message));
         lastTimestamp = millis();
         return true;
@@ -79,70 +84,132 @@ bool sendRadioMessage(int message) {
     return false;
 }
 
-void sendVibratePulse() {
+void sendVibratePulse(unsigned int time) {
     DEBUG_PRINTLN("Vibrate!");
     ps2x.read_gamepad(false, PS2_MAX); // Vibrate
-    delay(300);
+    delay(time);
     ps2x.read_gamepad(false, 0);       // Stop vibrate
 }
 
-void checkSelectButton(PS2X ps2x) {
-    static bool shouldSaveStartTime = true;
-    static unsigned long firstButtonTime;
-    if (ps2x.Button(PSB_SELECT)) {
+void checkSerialMessage() {
+    static String input = "";
+
+    if (Serial.available()) {
+        input = Serial.readStringUntil(';');
+        Serial.println(input);
+        processSerialMessage(input);
+        input = "";
+    }
+}
+
+// Help method to receive string separated by a character
+String getStringAtIndexSeparatedByChar(String data, char separator, int index) {
+    int found = 0;
+    int strIndex[] = {0, -1};
+    int maxIndex = data.length() - 1;
+
+    for (int i = 0; i <= maxIndex && found <= index; i++) {
+        if (data.charAt(i) == separator || i == maxIndex) {
+            found++;
+            strIndex[0] = strIndex[1] + 1;
+            strIndex[1] = (i == maxIndex) ? i + 1 : i;
+        }
+    }
+
+    return found > index ? data.substring(strIndex[0], strIndex[1]) : "";
+}
+
+void processSerialMessage(String input) {
+    String header = getStringAtIndexSeparatedByChar(input, ' ', 0);
+    if (header.equals("NEW_LOG")) {
+        DEBUG_PRINTLN("Read newlog message");
+        int data = getStringAtIndexSeparatedByChar(input, ' ', 1).toInt();
+        int message = combine(NewLog, data);
+        sendRadioMessage(message);
+    }
+}
+
+#define NR_BUTTONS      4
+#define SELECT_BUTTON   0
+#define R2_BUTTON       1
+#define CIRCLE_BUTTON   2
+#define TRIANGLE_BUTTON 3
+
+static unsigned int buttons[NR_BUTTONS] = {PSB_SELECT, PSB_R2, PSB_CIRCLE, PSB_TRIANGLE};
+static bool hasSavedStartTime[NR_BUTTONS];
+static unsigned long startTime[NR_BUTTONS];
+
+// Generic check button held state method to prevent redundancy
+void checkButton(PS2X ps2x, unsigned int button, unsigned int delay, void *function()) {
+    if (ps2x.Button(buttons[button])) {
         // Store the timestamp of the first button event
-        if (shouldSaveStartTime) {
-            shouldSaveStartTime = false;
-            firstButtonTime = millis();
+        if (!hasSavedStartTime[button]) {
+            hasSavedStartTime[button] = true;
+            startTime[button] = millis();
         }
 
-        // Has button been pressed for 0.2 seconds?
-        if (millis() - firstButtonTime > 200) {
-            DEBUG_PRINTLN("Button held for at least 0.2 s");
+        // Has button been pressed for <delay> time?
+        if (millis() - startTime[button] > delay) {
+            sprintf(logMsg, "Button %d held for at least %d millis", button, delay);
+            DEBUG_PRINTLN(logMsg);
 
-            // Switch mode
-            if (mode == ManualMode) {
-                mode = RemoteMode;
-            } else {
-                mode = ManualMode;
-            }
-            DEBUG_PRINT("Changing mode to: ");
-            DEBUG_PRINTLN(mode);
+            function();
 
-            // Change of mode is far more important to send than
-            // an accelerate/steering message (the latter are
-            // repeating itself whilst change of mode is not).
-            while (!sendRadioMessage(mode)) {
-                DEBUG_PRINTLN("Radio chip busy... trying again!");
-            }
-
-            // Vibrate and delay!
-            for (int i = 0; i < mode + 1; i++) {
-                if (i != 0)
-                    delay(500);
-                sendVibratePulse();
-            }
-            shouldSaveStartTime = true;
+            hasSavedStartTime[button] = false;
         }
-    } else if (firstButtonTime != 0) {
+    } else if (startTime[button] != 0) {
         // If we go one loop iteration and the button is
         // not held after the first button event, cancel
-        shouldSaveStartTime = true;
+        hasSavedStartTime[button] = false;
     }
+}
+
+void sendLoggingEnabled() {
+    int message = combine(SetLogging, true);
+    sendRadioMessage(message);
+    sendVibratePulse(1000);
+}
+
+void sendLoggingDisabled() {
+    int message = combine(SetLogging, false);
+    sendRadioMessage(message);
+    sendVibratePulse(1000);
+}
+
+void sendChangeOfMode() {
+    // Switch mode
+    if (mode == ManualMode)
+        mode = RemoteMode;
+    else
+        mode = ManualMode;
+    sprintf(logMsg, "Changing mode to: %d", mode);
+    DEBUG_PRINTLN(logMsg);
+
+    sendRadioMessage(mode);
+    sendVibratePulse(300);
+}
+
+void sendRunBenchmark() {
+    int message = combine(RunBenchmark, true);
+    sendRadioMessage(message);
+    sendVibratePulse(1000);
 }
 
 void readController() {
     ps2x.read_gamepad();
 
-    // Send change of mode?
-    checkSelectButton(ps2x);
+    // Check button states
+    checkButton(ps2x, SELECT_BUTTON, 200, &sendChangeOfMode);
+    checkButton(ps2x, R2_BUTTON, 1000, &sendRunBenchmark);
+    checkButton(ps2x, CIRCLE_BUTTON, 1000, &sendLoggingDisabled);
+    checkButton(ps2x, TRIANGLE_BUTTON, 1000, &sendLoggingEnabled);
 
+    // Joysticks
+    /* Always send both acceleration and steering messages, since just
+    sending when the joysticks are not in the middle will result in it being
+    impossible to send a 0 % acceleration or steer straight forward message.
+    */
     if (mode == RemoteMode) {
-        /* Always send both acceleration and steering messages, since just
-        sending when the joysticks are not in the middle will result in it being
-        impossible to send a 0 % acceleration or steer straight forward message.
-        */
-
         static bool lastSentMessage = false;
 
         int message;
@@ -172,7 +239,7 @@ void readController() {
         }
 
         // Send it
-        if (sendRadioMessage(message)) {
+        if (trySendRadioMessage(message)) {
             if ((message >> 8 & 0xFF) == Accelerate) {
                 DEBUG_PRINT("Will send percentage: ");
             } else {
@@ -185,5 +252,9 @@ void readController() {
 }
 
 void loop() {
+    // Read the data from PS2 controller
     readController();
+
+    // Check serial input for new log message
+    checkSerialMessage();
 }

@@ -10,6 +10,7 @@
 #include <RF24.h>
 #include <MCP41_Simple.h>
 #include <RemoteControlRRLib.h>
+#include <SD.h>
 
 #define POTENTIOMETER_CS 53
 
@@ -36,12 +37,21 @@
 #define STEERING_SENSOR_LOW  630  // 666
 #define STEERING_SENSOR_HIGH 40   // 29
 
+#define SD_PIN 4
+#define LOG_FILENAME "log"
+#define LOG_FILETYPE ".txt"
+
 
 RF24 radio(RADIO_CE, RADIO_CSN);
 MCP41_Simple potentiometer;
 
-int mode = ManualMode;
-int steeringRef = -1;
+char logName[30];
+File logFile;
+
+static int mode = ManualMode;
+static int steeringRef = -1;
+static double acceleration = -1;
+static bool logEnabled = true;
 
 void setup() {
     Serial.begin(9600);
@@ -51,10 +61,8 @@ void setup() {
     radio.setPALevel(RF24_PA_MAX);
     radio.setDataRate(RF24_250KBPS);
     radio.startListening();
-    DEBUG_PRINT("Listening radio on ");
-    DEBUG_PRINT(RADIO_CE);
-    DEBUG_PRINT(", ");
-    DEBUG_PRINTLN(RADIO_CSN);
+    sprintf(logMsg, "Listening radio on pins: %d, %d", RADIO_CE, RADIO_CSN);
+    DEBUG_PRINTLN(logMsg);
 
     // Potentiometer
     potentiometer.begin(POTENTIOMETER_CS);
@@ -73,7 +81,18 @@ void setup() {
     // Steering sensor
     pinMode(STEERING_SENSOR, INPUT);
 
-    //runBenchmark();
+    // Logging
+    if (!SD.begin(SD_PIN)) {
+        Serial.println("SD card initialization failed!");
+    } else {
+        Serial.println("SD card init succeeded");
+        sprintf(logName, "%s%s", LOG_FILENAME, LOG_FILETYPE);
+        logFile = SD.open(logName, FILE_WRITE);
+        if (logFile) {
+            Serial.println("\n*** Logging begin ***");
+            logToFile("millis(),\tsteeringRef,\tsteering sensor,\tacceleration");
+        }
+    }
 }
 
 // Fetch the next radio message
@@ -84,10 +103,10 @@ int nextRadioMessage() {
 }
 
 // Send acceleration value to the digital potentiometer
-void updateAccelerationValue(int acc) {
+int updateAccelerationValue(int acc) {
     if (acc >= 0 && acc <= 100) {
-        double wiper = percentageToStep(acc);
-        potentiometer.setWiper(wiper);
+        acceleration = acc;
+        potentiometer.setWiper(percentageToStep(acc));
     }
 }
 
@@ -142,11 +161,37 @@ void readRadio() {
             updateAccelerationValue(acc);
             DEBUG_PRINT("Read accelerate message: ");
             DEBUG_PRINTLN(acc);
+        } else if (header == SetLogging) {
+            logEnabled = message & 0xFF;
+        } else if (header == NewLog) {
+            int logNumber = message & 0xFF;
+            sprintf(logName, "%s%d%s", LOG_FILENAME, logNumber, LOG_FILETYPE);
+            Serial.println("\n*** Logging begin ***");
+            logToFile("millis(),\tsteeringRef,\tsteering sensor,\tacceleration");
+        } else if (header == RunBenchmark) {
+            // First set speed to 0
+            updateAccelerationValue(0);
+            delay(1000);
+            // Run benchmark
+            bool toRight = message & 0xFF;
+            runBenchmark(toRight);
         }
     } else if (mode != ManualMode && millis() - lastMessageReceivedTime > 5000) {
         DEBUG_PRINTLN("No radio messages received for 5 seconds, falling back to manual mode!");
         enableManualMode();
     }
+}
+
+void logToFile(const char *str) {
+    logFile = SD.open(logName, FILE_WRITE);
+    logFile.println(str);
+    logFile.close();
+}
+
+void logToFile(double value) {
+    logFile = SD.open(logName, FILE_WRITE);
+    logFile.print(value);
+    logFile.close();
 }
 
 // Turns Relay 1 to 6 on
@@ -222,37 +267,34 @@ void updateMotor(double speed) {
     analogWrite(MOTOR_SPEED, abs(speed));
 }
 
-void runBenchmark() {
-    DEBUG_PRINTLN("Benchmark has begun...");
-    steeringRef = 0;
+void runBenchmark(boolean toRight) {
+    sprintf(logMsg, "Benchmark (toRight: %d) has begun!", toRight);
+    DEBUG_PRINTLN(logMsg);
+    logToFile(logMsg);
+    steeringRef = toRight ? 255 : 0;
 
     while (abs(steeringRef - getSteeringValue()) > 10) {
-        DEBUG_PRINT("1: SteeringValue :");
-        DEBUG_PRINT(getSteeringValue());
-        DEBUG_PRINT(", ");
-        DEBUG_PRINT("ref: ");
-        DEBUG_PRINTLN(steeringRef);
+        sprintf(logMsg, "1: SteeringValue: %d, ref: %d", getSteeringValue(), steeringRef);
+        DEBUG_PRINTLN(logMsg);
         updateMotor(calculatePID());
     }
 
     delay(1000);
 
     // Motor is at end point
-    steeringRef = 255;
+    steeringRef = toRight ? 0 : 255;
     double timeStart = millis();
 
     while (abs(steeringRef - getSteeringValue()) > 10) {
-        DEBUG_PRINT("2: SteeringValue :");
-        DEBUG_PRINT(getSteeringValue());
-        DEBUG_PRINT(", ");
-        DEBUG_PRINT("ref: ");
-        DEBUG_PRINTLN(steeringRef);
+        sprintf(logMsg, "2: SteeringValue: %d, ref: %d", getSteeringValue(), steeringRef);
+        DEBUG_PRINTLN(logMsg);
         updateMotor(calculatePID());
     }
 
     double totalTime = millis() - timeStart;
-    DEBUG_PRINT("End to end took ");
-    DEBUG_PRINTLN(totalTime / 1000);
+    sprintf(logMsg, "End to end took: %d", totalTime / 1000);
+    DEBUG_PRINTLN(logMsg);
+    logToFile(logMsg);
     delay(1000);
 }
 
@@ -262,5 +304,12 @@ void loop() {
     if (mode == RemoteMode) {
         // Run PID here
         updateMotor(calculatePID());
+
+        // Log
+        if (logEnabled) {
+            sprintf(logMsg, "%d,\t%d,\t%d,\t%d", (unsigned long)millis(), steeringRef, getSteeringValue(), acceleration);
+            logToFile(logMsg);
+            Serial.println(logMsg);   
+        }
     }
 }
