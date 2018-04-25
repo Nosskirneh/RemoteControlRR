@@ -110,6 +110,7 @@ void enableManualMode() {
     updateAccelerationValue(0);
     updateMotor(0);
     turnRelaysOff();
+    resetPIDValues();
 }
 
 // Check for new messages and process each of them
@@ -165,18 +166,19 @@ int getSteeringValue() {
     return map(value, STEERING_SENSOR_LOW, STEERING_SENSOR_HIGH, 0, 255);
 }
 
+// Initial values
+// Declared in the global scope to be able to reset them when switching to manual mode
+static double P = 0.0;
+static double I = 0.0;
+static double D = 0.0;
+static int e_old = 0;
+
 double calculatePID() {
     static double output = 0;
     static unsigned long lastTimestamp = 0;
 
     if (millis() - lastTimestamp > PID_SAMPLE_TIME * 1000) {
         lastTimestamp = millis();
-        // Initial values
-        static double P = 0.0;
-        static double I = 0.0;
-        static double D = 0.0;
-
-        static int e_old = 0;
 
         // Calculate the error
         int e = steeringRef - getSteeringValue();
@@ -193,6 +195,13 @@ double calculatePID() {
         return output = constrain(u, -255.0, 255.0);
     }
     return output;
+}
+
+void resetPIDValues() {
+    P = 0.0;
+    I = 0.0;
+    D = 0.0;
+    e_old = 0;
 }
 
 void updateMotor(double speed) {
