@@ -157,7 +157,7 @@ void sendChangeOfMode() {
     sprintf(logMsg, "Changing mode to: %d", mode);
     DEBUG_PRINTLN(logMsg);
 
-    sendRadioMessage(mode);
+    sendRadioMessage(combine(mode, 0));
 }
 
 void sendRunBenchmark() {
@@ -224,7 +224,7 @@ void readController() {
 void processACK(byte data) {
     if (data == ManualMode || data == RemoteMode) {
         // Vibrate and delay!
-        for (int i = 0; i < mode + 1; i++) {
+        for (int i = 0; i < mode; i++) {
             if (i != 0)
                 delay(500);
             sendVibratePulse(300);

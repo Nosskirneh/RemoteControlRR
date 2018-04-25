@@ -17,10 +17,10 @@ extern RF24 radio;
 
 // To be sent over radio
 typedef enum MessageType {
-    ManualMode   = 0b00000000,
-    RemoteMode   = 0b00000001,
-    Steer        = 0b00000100,
-    Accelerate   = 0b00000110,
+    ManualMode   = 0b00000001,
+    RemoteMode   = 0b00000010,
+    Steer        = 0b00001000,
+    Accelerate   = 0b00001001,
     SetLogging   = 0b10000000,
     NewLog       = 0b10000001,
     RunBenchmark = 0b10000010,

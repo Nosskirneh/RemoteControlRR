@@ -141,9 +141,9 @@ void readRadio() {
         // Mask out the header (first 8 bits)
         int header = message >> 8 & 0xFF;
         if (header == ManualMode) {
+            enableManualMode();
             sprintf(logMsg, "Read change mode to: %d", mode);
             DEBUG_PRINTLN(logMsg);
-            enableManualMode();
         } else if (header == RemoteMode) {
             enableRemoteMode();
             sprintf(logMsg, "Read change mode to: %d", mode);
