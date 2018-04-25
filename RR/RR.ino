@@ -118,14 +118,16 @@ void enableRemoteMode() {
     }
 }
 
-// Enable ManualMode
+// Enable ManualMode if it isn't enabled already
 void enableManualMode() {
-    mode = ManualMode;
-    sendACK(mode);
-    updateAccelerationValue(0);
-    updateMotor(0);
-    turnRelaysOff();
-    resetPIDValues();
+    if (mode != ManualMode) {
+        mode = ManualMode;
+        sendACK(mode);
+        updateAccelerationValue(0);
+        updateMotor(0);
+        turnRelaysOff();
+        resetPIDValues();
+    }
 }
 
 // Check for new messages and process each of them
