@@ -55,15 +55,40 @@ void setup() {
     ps2x.enablePressures();
 
     DEBUG_PRINTLN("Everything went OK!");
-    sendVibratePulse(300);
+    sendVibratePulses(1, 300);
 }
 
-void sendVibratePulse(unsigned int time) {
+
+/* Vibrate */
+static unsigned long vibrateDeltaTime;
+static unsigned long vibrateStartTime;
+static unsigned long vibrateEndTime;
+static byte vibrate;
+static unsigned int pulses;
+
+void updateVibrateState() {
+    if (pulses == 0)
+        return;
+
+    if (vibrate != 0 && millis() - vibrateStartTime > vibrateDeltaTime) {
+        // Enough time has passed, stop vibrating
+        vibrateEndTime = millis();
+        pulses--;
+        vibrate = 0;
+    } else if (vibrate == 0 && millis() - vibrateEndTime > vibrateDeltaTime) {
+        vibrateStartTime = millis();
+        vibrate = PS2_MAX;
+    }
+}
+
+void sendVibratePulses(unsigned int p, unsigned int t) {
+    pulses = p;
+    vibrateDeltaTime = t;
+    vibrateStartTime = millis();
     DEBUG_PRINTLN("Vibrate!");
     ps2x.read_gamepad(false, PS2_MAX); // Vibrate
-    delay(time);
-    ps2x.read_gamepad(false, 0);       // Stop vibrate
 }
+// ---
 
 void checkSerialMessage() {
     static String input = "";
@@ -166,10 +191,10 @@ void sendRunBenchmark() {
 }
 
 void readController() {
-    ps2x.read_gamepad();
+    ps2x.read_gamepad(false, vibrate);
 
     // Check button states
-    checkButton(ps2x, SELECT_BUTTON, 200, &sendChangeOfMode);
+    checkButton(ps2x, SELECT_BUTTON, 400, &sendChangeOfMode);
     checkButton(ps2x, R2_BUTTON, 1000, &sendRunBenchmark);
     checkButton(ps2x, CIRCLE_BUTTON, 1000, &sendLoggingDisabled);
     checkButton(ps2x, TRIANGLE_BUTTON, 1000, &sendLoggingEnabled);
@@ -223,14 +248,9 @@ void readController() {
 
 void processACK(byte data) {
     if (data == ManualMode || data == RemoteMode) {
-        // Vibrate and delay!
-        for (int i = 0; i < mode; i++) {
-            if (i != 0)
-                delay(500);
-            sendVibratePulse(300);
-        }
+        sendVibratePulses(mode, 300);
     } else if (data == NewLog || data == SetLogging || data == RunBenchmark) {
-        sendVibratePulse(1000);
+        sendVibratePulses(1, 1000);
     }
 }
 
@@ -258,4 +278,7 @@ void loop() {
 
     // Check if any ACK messages have been received
     readRadio();
+
+    // Update vibrate state of PS2 controller
+    updateVibrateState();
 }
