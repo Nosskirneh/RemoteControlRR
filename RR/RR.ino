@@ -104,7 +104,8 @@ int updateAccelerationValue(int acc) {
     }
 }
 
-// Help method that returns the value that the ECM of the Rescue Runner
+// Help method that returns the value that the ECM
+// of the Rescue Runner wants to accelerate
 double percentageToStep(double percentage) {
     return percentage * 0.88 + 20;
 }
@@ -183,6 +184,7 @@ void readRadio() {
     }
 }
 
+// Send radio message that the last message with header `header` was received.
 void sendACK(int header) {
     int message = combine(ACK, header);
     sendRadioMessage(message);

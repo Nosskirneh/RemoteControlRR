@@ -235,11 +235,10 @@ void readController() {
 
         // Send it
         if (trySendRadioMessage(message)) {
-            if ((message >> 8 & 0xFF) == Accelerate) {
+            if ((message >> 8 & 0xFF) == Accelerate)
                 DEBUG_PRINT("Will send percentage: ");
-            } else {
+            else
                 DEBUG_PRINT("Will send steering angle: ");
-            }
             DEBUG_PRINTLN(message & 0xFF);
             lastSentMessage = !lastSentMessage;   
         }
