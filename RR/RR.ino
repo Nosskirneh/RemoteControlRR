@@ -57,7 +57,8 @@ void setup() {
     Serial.begin(9600);
     // Radio
     radio.begin();
-    radio.openReadingPipe(0, RADIO_ADDRESS);
+    radio.openWritingPipe(RADIO_ADDRESS[1]);
+    radio.openReadingPipe(1, RADIO_ADDRESS[0]);
     radio.setPALevel(RF24_PA_MAX);
     radio.setDataRate(RF24_250KBPS);
     radio.startListening();
@@ -95,13 +96,6 @@ void setup() {
     }
 }
 
-// Fetch the next radio message
-int nextRadioMessage() {
-    int message;
-    radio.read(&message, sizeof(message));
-    return message;
-}
-
 // Send acceleration value to the digital potentiometer
 int updateAccelerationValue(int acc) {
     if (acc >= 0 && acc <= 100) {
@@ -119,6 +113,7 @@ double percentageToStep(double percentage) {
 void enableRemoteMode() {
     if (mode != RemoteMode) {
         mode = RemoteMode;
+        sendACK(mode);
         turnRelaysOn();
     }
 }
@@ -126,6 +121,7 @@ void enableRemoteMode() {
 // Enable ManualMode
 void enableManualMode() {
     mode = ManualMode;
+    sendACK(mode);
     updateAccelerationValue(0);
     updateMotor(0);
     turnRelaysOff();
@@ -163,11 +159,13 @@ void readRadio() {
             DEBUG_PRINTLN(logMsg);
         } else if (header == SetLogging) {
             logEnabled = message & 0xFF;
+            sendACK(header);
         } else if (header == NewLog) {
             int logNumber = message & 0xFF;
             sprintf(logName, "%s%d%s", LOG_FILENAME, logNumber, LOG_FILETYPE);
             Serial.println("\n*** Logging begin ***");
             logToFile("millis(), steeringRef, steering sensor, acceleration");
+            sendACK(header);
         } else if (header == RunBenchmark) {
             // First set speed to 0
             updateAccelerationValue(0);
@@ -175,11 +173,17 @@ void readRadio() {
             // Run benchmark
             bool toRight = message & 0xFF;
             runBenchmark(toRight);
+            sendACK(header);
         }
     } else if (mode != ManualMode && millis() - lastMessageReceivedTime > 5000) {
         DEBUG_PRINTLN("No radio messages received for 5 seconds, falling back to manual mode!");
         enableManualMode();
     }
+}
+
+void sendACK(int header) {
+    int message = combine(ACK, header);
+    sendRadioMessage(message);
 }
 
 void logToFile(const char *str) {

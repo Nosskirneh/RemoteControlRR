@@ -1,3 +1,7 @@
+#include <RF24.h>
+
+extern RF24 radio;
+
 #define DEBUG
 
 #ifdef DEBUG
@@ -19,9 +23,21 @@ typedef enum MessageType {
     Accelerate   = 0b00000110,
     SetLogging   = 0b10000000,
     NewLog       = 0b10000001,
-    RunBenchmark = 0b10000010
+    RunBenchmark = 0b10000010,
+    ACK          = 0b10000011
 } MessageType;
 
-const byte RADIO_ADDRESS[6] = "00001";
+const byte RADIO_ADDRESS[2][6] = {"00001", "00002"};
+const char logMsg[100];
 
-char logMsg[100];
+// Put the content on the first two bytes of an int
+int combine(byte b1, byte b2);
+
+// Fetch the next radio message
+int nextRadioMessage();
+
+// Change of mode and other messages are far more important to send than an
+// accelerate/steering message (the latter are repeating itself whilst change of
+// mode is not).
+void sendRadioMessage(int message);
+bool trySendRadioMessage(int message);

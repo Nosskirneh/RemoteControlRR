@@ -33,7 +33,8 @@ void setup() {
 
     // Setup radio
     radio.begin();
-    radio.openWritingPipe(RADIO_ADDRESS);
+    radio.openWritingPipe(RADIO_ADDRESS[0]);
+    radio.openReadingPipe(1, RADIO_ADDRESS[1]);
     radio.setPALevel(RF24_PA_MAX);
     radio.setDataRate(RF24_250KBPS);
     radio.stopListening();
@@ -55,33 +56,6 @@ void setup() {
 
     DEBUG_PRINTLN("Everything went OK!");
     sendVibratePulse(300);
-}
-
-int combine(byte b1, byte b2) {
-    // Put the content on the first two bytes of an int
-    int combined = b1 << 8 | b2;
-    return combined;
-}
-
-
-// Change of mode and other messages are far more important to send than an
-// accelerate/steering message (the latter are repeating itself whilst change of
-// mode is not).
-void sendRadioMessage(int message) {
-    while (!trySendRadioMessage(message))
-        DEBUG_PRINTLN("Radio chip busy... trying again!");
-}
-
-bool trySendRadioMessage(int message) {
-    static unsigned long lastTimestamp = 0;
-    // RF24 somehow crashes Arduino when sending too fast.
-    // Limit it to every 0.04 s. Do not block first call.
-    if (lastTimestamp == 0 || millis() - lastTimestamp > 40) {
-        radio.write(&message, sizeof(message));
-        lastTimestamp = millis();
-        return true;
-    }
-    return false;
 }
 
 void sendVibratePulse(unsigned int time) {
@@ -167,13 +141,11 @@ void checkButton(PS2X ps2x, unsigned int button, unsigned int delay, void *funct
 void sendLoggingEnabled() {
     int message = combine(SetLogging, true);
     sendRadioMessage(message);
-    sendVibratePulse(1000);
 }
 
 void sendLoggingDisabled() {
     int message = combine(SetLogging, false);
     sendRadioMessage(message);
-    sendVibratePulse(1000);
 }
 
 void sendChangeOfMode() {
@@ -186,13 +158,11 @@ void sendChangeOfMode() {
     DEBUG_PRINTLN(logMsg);
 
     sendRadioMessage(mode);
-    sendVibratePulse(300);
 }
 
 void sendRunBenchmark() {
     int message = combine(RunBenchmark, true);
     sendRadioMessage(message);
-    sendVibratePulse(1000);
 }
 
 void readController() {
@@ -251,10 +221,41 @@ void readController() {
     }
 }
 
+void processACK(byte data) {
+    if (data == ManualMode || data == RemoteMode) {
+        // Vibrate and delay!
+        for (int i = 0; i < mode + 1; i++) {
+            if (i != 0)
+                delay(500);
+            sendVibratePulse(300);
+        }
+    } else if (data == NewLog || data == SetLogging || data == RunBenchmark) {
+        sendVibratePulse(1000);
+    }
+}
+
+// Check for new ACK messages
+void readRadio() {
+    if (radio.available()) {
+        int message = nextRadioMessage();
+        DEBUG_PRINTLN(message);
+
+        // Mask out the header (first 8 bits)
+        int header = message >> 8 & 0xFF;
+        if (header == ACK) {
+            DEBUG_PRINTLN("Read ACK!");
+            processACK(message & 0xFF);
+        }
+    }
+}
+
 void loop() {
     // Read the data from PS2 controller
     readController();
 
     // Check serial input for new log message
     checkSerialMessage();
+
+    // Check if any ACK messages have been received
+    readRadio();
 }
