@@ -90,7 +90,7 @@ void setup() {
         logFile = SD.open(logName, FILE_WRITE);
         if (logFile) {
             Serial.println("\n*** Logging begin ***");
-            logToFile("millis(),\tsteeringRef,\tsteering sensor,\tacceleration");
+            logToFile("millis(), steeringRef, steering sensor, acceleration");
         }
     }
 }
@@ -143,31 +143,31 @@ void readRadio() {
         // Mask out the header (first 8 bits)
         int header = message >> 8 & 0xFF;
         if (header == ManualMode) {
-            DEBUG_PRINT("Read changed mode to: ");
-            DEBUG_PRINTLN(mode);
+            sprintf(logMsg, "Read change mode to: %d", mode);
+            DEBUG_PRINTLN(logMsg);
             enableManualMode();
         } else if (header == RemoteMode) {
             enableRemoteMode();
-            DEBUG_PRINT("Read changed mode to: ");
-            DEBUG_PRINTLN(mode);
+            sprintf(logMsg, "Read change mode to: %d", mode);
+            DEBUG_PRINTLN(logMsg);
         } else if (header == Steer) {
             enableRemoteMode();
             steeringRef = message & 0xFF;
-            DEBUG_PRINT("Read steering message: ");
-            DEBUG_PRINTLN(steeringRef);
+            sprintf(logMsg, "Read steering message: %d", steeringRef);
+            DEBUG_PRINTLN(logMsg);
         } else if (header == Accelerate) {
             enableRemoteMode();
             int acc = message & 0xFF;
             updateAccelerationValue(acc);
-            DEBUG_PRINT("Read accelerate message: ");
-            DEBUG_PRINTLN(acc);
+            sprintf(logMsg, "Read accelerate message: %d", acc);
+            DEBUG_PRINTLN(logMsg);
         } else if (header == SetLogging) {
             logEnabled = message & 0xFF;
         } else if (header == NewLog) {
             int logNumber = message & 0xFF;
             sprintf(logName, "%s%d%s", LOG_FILENAME, logNumber, LOG_FILETYPE);
             Serial.println("\n*** Logging begin ***");
-            logToFile("millis(),\tsteeringRef,\tsteering sensor,\tacceleration");
+            logToFile("millis(), steeringRef, steering sensor, acceleration");
         } else if (header == RunBenchmark) {
             // First set speed to 0
             updateAccelerationValue(0);
