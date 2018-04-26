@@ -90,7 +90,7 @@ int updateAccelerationValue(int acc) {
 // Help method that returns the value that the ECM
 // of the Rescue Runner wants to accelerate
 double percentageToStep(double percentage) {
-    return percentage * 0.88 + 20;
+    return (100 - percentage) * 0.88 + 20;
 }
 
 // Enable RemoteMode if it isn't enabled already
