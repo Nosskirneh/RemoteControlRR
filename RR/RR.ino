@@ -53,6 +53,9 @@ static int steeringRef = -1;
 static double acceleration = -1;
 static bool logEnabled = true;
 
+static byte benchmarkMode = BenchmarkDone;
+
+
 void setup() {
     Serial.begin(9600);
     // Radio
@@ -131,6 +134,22 @@ void enableManualMode() {
     }
 }
 
+void handleBenchmark(byte data) {
+    sendACK(Benchmark);
+
+    if (data == BenchmarkRight || data == BenchmarkLeft) {
+        // First set speed to 0
+        updateAccelerationValue(0);
+        delay(1000);
+        // Run benchmark
+        benchmarkMode = BenchmarkInitiated;
+        runBenchmark(data);
+    } else {
+        // Cancel
+        benchmarkMode = BenchmarkDone;
+    }
+}
+
 // Check for new messages and process each of them
 void readRadio() {
     static unsigned long lastMessageReceivedTime = 0;
@@ -168,16 +187,11 @@ void readRadio() {
             Serial.println("\n*** Logging begin ***");
             logToFile("millis(), steeringRef, steering sensor, acceleration");
             sendACK(header);
-        } else if (header == RunBenchmark) {
-            // First set speed to 0
-            updateAccelerationValue(0);
-            delay(1000);
-            // Run benchmark
-            bool toRight = message & 0xFF;
-            runBenchmark(toRight);
-            sendACK(header);
+        } else if (header == Benchmark) {
+            handleBenchmark(message & 0xFF);
         }
-    } else if (mode != ManualMode && millis() - lastMessageReceivedTime > 5000) {
+    } else if (benchmarkMode != BenchmarkInitiated && mode != ManualMode &&
+               millis() - lastMessageReceivedTime > 5000) {
         DEBUG_PRINTLN("No radio messages received for 5 seconds, falling back to manual mode!");
         enableManualMode();
     }
@@ -284,6 +298,10 @@ void runBenchmark(boolean toRight) {
         sprintf(logMsg, "1: SteeringValue: %d, ref: %d", getSteeringValue(), steeringRef);
         DEBUG_PRINTLN(logMsg);
         updateMotor(calculatePID());
+
+        // Should cancel?
+        readRadio();
+        if (benchmarkMode == BenchmarkDone) return;
     }
 
     delay(1000);
@@ -296,6 +314,10 @@ void runBenchmark(boolean toRight) {
         sprintf(logMsg, "2: SteeringValue: %d, ref: %d", getSteeringValue(), steeringRef);
         DEBUG_PRINTLN(logMsg);
         updateMotor(calculatePID());
+
+        // Should cancel?
+        readRadio();
+        if (benchmarkMode == BenchmarkDone) return;
     }
 
     double totalTime = millis() - timeStart;

@@ -17,15 +17,29 @@ extern RF24 radio;
 
 // To be sent over radio
 typedef enum MessageType {
-    ManualMode   = 0b00000001,
-    RemoteMode   = 0b00000010,
-    Steer        = 0b00001000,
-    Accelerate   = 0b00001001,
-    SetLogging   = 0b10000000,
-    NewLog       = 0b10000001,
-    RunBenchmark = 0b10000010,
-    ACK          = 0b10000011
+    ManualMode = 0b00000001,
+    RemoteMode = 0b00000010,
+    Steer      = 0b00001000,
+    Accelerate = 0b00001001,
+    SetLogging = 0b10000000,
+    NewLog     = 0b10000001,
+    Benchmark  = 0b10000010,
+    ACK        = 0b10000011
 } MessageType;
+
+// To be sent after the Benchmark header
+typedef enum BenchmarkData {
+    BenchmarkLeft   = 0b00000000,
+    BenchmarkRight  = 0b00000001,
+    BenchmarkCancel = 0b11110000
+} BenchmarkData;
+
+// To be used locally
+typedef enum BenchmarkMode {
+    BenchmarkSent = 0,
+    BenchmarkInitiated = 1,
+    BenchmarkDone = 2
+} BenchmarkMode;
 
 const byte RADIO_ADDRESS[2][6] = {"00001", "00002"};
 const char logMsg[100];

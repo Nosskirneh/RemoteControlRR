@@ -21,6 +21,7 @@ RF24 radio(RADIO_CE, RADIO_CSN);
 PS2X ps2x;
 
 int mode = ManualMode;
+static byte benchmarkMode = BenchmarkDone;
 
 #define PS2_CLK 24
 #define PS2_CMD 23
@@ -185,8 +186,19 @@ void sendChangeOfMode() {
     sendRadioMessage(combine(mode, 0));
 }
 
-void sendRunBenchmark() {
-    int message = combine(RunBenchmark, true);
+void sendBenchmarkEvent() {
+    int message;
+    if (benchmarkMode != BenchmarkDone) {
+        // Cancel the benchmark
+        DEBUG_PRINTLN("Will cancel benchmark");
+        message = combine(Benchmark, BenchmarkCancel);
+        benchmarkMode = BenchmarkDone;
+    } else {
+        // Start it
+        DEBUG_PRINTLN("Will start benchmark");
+        message = combine(Benchmark, BenchmarkRight);
+        benchmarkMode = BenchmarkSent;
+    }
     sendRadioMessage(message);
 }
 
@@ -195,7 +207,7 @@ void readController() {
 
     // Check button states
     checkButton(ps2x, SELECT_BUTTON, 400, &sendChangeOfMode);
-    checkButton(ps2x, R2_BUTTON, 1000, &sendRunBenchmark);
+    checkButton(ps2x, R2_BUTTON, 1000, &sendBenchmarkEvent);
     checkButton(ps2x, CIRCLE_BUTTON, 1000, &sendLoggingDisabled);
     checkButton(ps2x, TRIANGLE_BUTTON, 1000, &sendLoggingEnabled);
 
@@ -204,7 +216,7 @@ void readController() {
     sending when the joysticks are not in the middle will result in it being
     impossible to send a 0 % acceleration or steer straight forward message.
     */
-    if (mode == RemoteMode) {
+    if (mode == RemoteMode && benchmarkMode == BenchmarkDone) {
         static bool lastSentMessage = false;
 
         int message;
@@ -250,7 +262,13 @@ void processACK(byte data) {
         sprintf(logMsg, "Changing mode to: %d", mode);
         DEBUG_PRINTLN(logMsg);
         sendVibratePulses(mode, 300);
-    } else if (data == NewLog || data == SetLogging || data == RunBenchmark) {
+    } else if (data == NewLog || data == SetLogging) {
+        sendVibratePulses(1, 1000);
+    } else if (data == Benchmark) {
+        if (benchmarkMode == BenchmarkSent) // Benchmark started
+            benchmarkMode = BenchmarkInitiated;
+        else // Second ACK: Benchmark was canceled/completed
+            benchmarkMode = BenchmarkDone;
         sendVibratePulses(1, 1000);
     }
 }
