@@ -171,12 +171,12 @@ void readRadio() {
             enableRemoteMode();
             sprintf(logMsg, "Read change mode to: %d", mode);
             DEBUG_PRINTLN(logMsg);
-        } else if (header == Steer) {
+        } else if (header == Steer && benchmarkMode == BenchmarkDone) {
             enableRemoteMode();
             steeringRef = message & 0xFF;
             sprintf(logMsg, "Read steering message: %d", steeringRef);
             DEBUG_PRINTLN(logMsg);
-        } else if (header == Accelerate) {
+        } else if (header == Accelerate && benchmarkMode == BenchmarkDone) {
             enableRemoteMode();
             int acc = message & 0xFF;
             updateAccelerationValue(acc);
