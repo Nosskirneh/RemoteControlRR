@@ -144,6 +144,7 @@ void handleBenchmark(byte data) {
     if (data == BenchmarkRight || data == BenchmarkLeft) {
         // First set speed to 0
         updateAccelerationValue(0);
+        DEBUG_PRINTLN("Waiting for RescueRunner to slow down (1 s)...");
         delay(1000);
         // Run benchmark
         benchmarkMode = BenchmarkInitiated;

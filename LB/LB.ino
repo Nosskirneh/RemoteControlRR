@@ -129,13 +129,14 @@ void processSerialMessage(String input) {
     }
 }
 
-#define NR_BUTTONS      4
+#define NR_BUTTONS      5
 #define SELECT_BUTTON   0
 #define R2_BUTTON       1
-#define CIRCLE_BUTTON   2
-#define TRIANGLE_BUTTON 3
+#define L2_BUTTON       2
+#define CIRCLE_BUTTON   3
+#define TRIANGLE_BUTTON 4
 
-static unsigned int buttons[NR_BUTTONS] = {PSB_SELECT, PSB_R2, PSB_CIRCLE, PSB_TRIANGLE};
+static unsigned int buttons[NR_BUTTONS] = {PSB_SELECT, PSB_R2, PSB_L2, PSB_CIRCLE, PSB_TRIANGLE};
 static bool hasSavedStartTime[NR_BUTTONS];
 static unsigned long startTime[NR_BUTTONS];
 
@@ -186,7 +187,15 @@ void sendChangeOfMode() {
     sendRadioMessage(combine(mode, 0));
 }
 
-void sendBenchmarkEvent() {
+void sendRightBenchmark() {
+    sendBenchmarkEvent(BenchmarkRight);
+}
+
+void sendLeftBenchmark() {
+    sendBenchmarkEvent(BenchmarkLeft);
+}
+
+void sendBenchmarkEvent(byte direction) {
     int message;
     if (benchmarkMode != BenchmarkDone) {
         // Cancel the benchmark
@@ -196,7 +205,7 @@ void sendBenchmarkEvent() {
     } else {
         // Start it
         DEBUG_PRINTLN("Will start benchmark");
-        message = combine(Benchmark, BenchmarkRight);
+        message = combine(Benchmark, direction);
         benchmarkMode = BenchmarkSent;
     }
     sendRadioMessage(message);
@@ -207,7 +216,8 @@ void readController() {
 
     // Check button states
     checkButton(ps2x, SELECT_BUTTON, 400, &sendChangeOfMode);
-    checkButton(ps2x, R2_BUTTON, 1000, &sendBenchmarkEvent);
+    checkButton(ps2x, R2_BUTTON, 1000, &sendRightBenchmark);
+    checkButton(ps2x, L2_BUTTON, 1000, &sendLeftBenchmark);
     checkButton(ps2x, CIRCLE_BUTTON, 1000, &sendLoggingDisabled);
     checkButton(ps2x, TRIANGLE_BUTTON, 1000, &sendLoggingEnabled);
 
