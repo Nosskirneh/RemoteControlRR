@@ -50,7 +50,7 @@ File logFile;
 
 static int mode = ManualMode;
 static int steeringRef = -1;
-static double acceleration = -1;
+static int acceleration = -1;
 static bool logEnabled = true;
 
 static byte benchmarkMode = BenchmarkDone;
@@ -340,7 +340,7 @@ void loop() {
 
         // Log
         if (logEnabled) {
-            sprintf(logMsg, "%u,\t%d,\t%d,\t%d", (unsigned long)millis(), steeringRef, getSteeringValue(), acceleration);
+            sprintf(logMsg, "%lu,\t%d,\t%d,\t%d", millis(), steeringRef, getSteeringValue(), acceleration);
             logToFile(logMsg);
             Serial.println(logMsg);   
         }
