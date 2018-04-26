@@ -44,8 +44,6 @@ static int steeringRef = -1;
 static int acceleration = -1;
 static bool logEnabled = true;
 
-static byte benchmarkMode = BenchmarkDone;
-
 
 void setup() {
     Serial.begin(9600);
@@ -97,7 +95,6 @@ double percentageToStep(double percentage) {
 void enableRemoteMode() {
     if (mode != RemoteMode) {
         mode = RemoteMode;
-        benchmarkMode = BenchmarkDone;
         sendACK(mode);
 
         turnRelaysOn();
@@ -108,7 +105,6 @@ void enableRemoteMode() {
 void enableManualMode() {
     if (mode != ManualMode) {
         mode = ManualMode;
-        benchmarkMode = BenchmarkDone;
         sendACK(mode);
 
         updateAccelerationValue(0);
@@ -127,12 +123,17 @@ void handleBenchmark(byte data) {
         DEBUG_PRINTLN("Waiting for RescueRunner to slow down (1 s)...");
         delay(1000);
         // Run benchmark
-        benchmarkMode = BenchmarkInitiated;
         runBenchmark(data);
-    } else {
-        // Cancel
-        benchmarkMode = BenchmarkDone;
     }
+}
+
+// Smaller version of readRadio to be called in the benchmark method
+bool shouldStopBenchmark() {
+    if (!radio.available())
+        return false;
+
+    int message = nextRadioMessage();
+    return (message >> 8 & 0xFF == Benchmark);
 }
 
 // Check for new messages and process each of them
@@ -152,12 +153,12 @@ void readRadio() {
             enableRemoteMode();
             sprintf(logMsg, "Read change mode to: %d", mode);
             DEBUG_PRINTLN(logMsg);
-        } else if (header == Steer && benchmarkMode == BenchmarkDone) {
+        } else if (header == Steer) {
             enableRemoteMode();
             steeringRef = message & 0xFF;
             sprintf(logMsg, "Read steering message: %d", steeringRef);
             DEBUG_PRINTLN(logMsg);
-        } else if (header == Accelerate && benchmarkMode == BenchmarkDone) {
+        } else if (header == Accelerate) {
             enableRemoteMode();
             int acc = message & 0xFF;
             updateAccelerationValue(acc);
@@ -176,8 +177,7 @@ void readRadio() {
         } else if (header == Benchmark) {
             handleBenchmark(message & 0xFF);
         }
-    } else if (benchmarkMode != BenchmarkInitiated && mode != ManualMode &&
-               millis() - lastMessageReceivedTime > 5000) {
+    } else if (mode != ManualMode && millis() - lastMessageReceivedTime > 5000) {
         DEBUG_PRINTLN("No radio messages received for 5 seconds, falling back to manual mode!");
         enableManualMode();
     }
@@ -274,8 +274,7 @@ void runBenchmark(boolean toRight) {
         updateMotor(calculatePID());
 
         // Should cancel?
-        readRadio();
-        if (benchmarkMode == BenchmarkDone) return;
+        if (shouldStopBenchmark()) return;
     }
 
     delay(1000);
@@ -290,8 +289,7 @@ void runBenchmark(boolean toRight) {
         updateMotor(calculatePID());
 
         // Should cancel?
-        readRadio();
-        if (benchmarkMode == BenchmarkDone) return;
+        if (shouldStopBenchmark()) return;
     }
 
     double totalTime = millis() - timeStart;
