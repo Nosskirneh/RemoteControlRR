@@ -179,7 +179,7 @@ void sendChangeOfMode() {
         mode = RemoteMode;
     else
         mode = ManualMode;
-    sprintf(logMsg, "Changing mode to: %d", mode);
+    sprintf(logMsg, "Sending mode change to: %d", mode);
     DEBUG_PRINTLN(logMsg);
 
     sendRadioMessage(combine(mode, 0));
@@ -247,6 +247,8 @@ void readController() {
 
 void processACK(byte data) {
     if (data == ManualMode || data == RemoteMode) {
+        sprintf(logMsg, "Changing mode to: %d", mode);
+        DEBUG_PRINTLN(logMsg);
         sendVibratePulses(mode, 300);
     } else if (data == NewLog || data == SetLogging || data == RunBenchmark) {
         sendVibratePulses(1, 1000);
@@ -257,7 +259,6 @@ void processACK(byte data) {
 void readRadio() {
     if (radio.available()) {
         int message = nextRadioMessage();
-        DEBUG_PRINTLN(message);
 
         // Mask out the header (first 8 bits)
         int header = message >> 8 & 0xFF;

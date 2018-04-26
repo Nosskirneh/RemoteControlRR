@@ -137,7 +137,6 @@ void readRadio() {
     if (radio.available()) {
         lastMessageReceivedTime = millis();
         int message = nextRadioMessage();
-        DEBUG_PRINTLN(message);
 
         // Mask out the header (first 8 bits)
         int header = message >> 8 & 0xFF;
@@ -202,13 +201,13 @@ void logToFile(double value) {
     logFile.close();
 }
 
-// Turns Relay 1 to 6 on
+// Turns Relay 1 to 6 off
 void turnRelaysOff() {
     for (int i = RELAY1; i <= RELAY6; i++)
         digitalWrite(i, HIGH);
 }
 
-// Turns Relay 1 to 6 off
+// Turns Relay 1 to 6 on
 void turnRelaysOn() {
     for (int i = RELAY1; i <= RELAY6; i++)
         digitalWrite(i, LOW);
@@ -315,7 +314,7 @@ void loop() {
 
         // Log
         if (logEnabled) {
-            sprintf(logMsg, "%d,\t%d,\t%d,\t%d", (unsigned long)millis(), steeringRef, getSteeringValue(), acceleration);
+            sprintf(logMsg, "%u,\t%d,\t%d,\t%d", (unsigned long)millis(), steeringRef, getSteeringValue(), acceleration);
             logToFile(logMsg);
             Serial.println(logMsg);   
         }
