@@ -37,7 +37,7 @@
 #define STEERING_SENSOR_LOW  630  // 666
 #define STEERING_SENSOR_HIGH 40   // 29
 
-#define SD_PIN 4
+#define SD_PIN 5
 #define LOG_FILENAME "log"
 #define LOG_FILETYPE ".txt"
 
