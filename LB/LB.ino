@@ -262,6 +262,7 @@ void processACK(byte data) {
         sprintf(logMsg, "Changing mode to: %d", mode);
         DEBUG_PRINTLN(logMsg);
         sendVibratePulses(mode, 300);
+        benchmarkMode = BenchmarkDone;
     } else if (data == NewLog || data == SetLogging) {
         sendVibratePulses(1, 1000);
     } else if (data == Benchmark) {

@@ -117,7 +117,9 @@ double percentageToStep(double percentage) {
 void enableRemoteMode() {
     if (mode != RemoteMode) {
         mode = RemoteMode;
+        benchmarkMode = BenchmarkDone;
         sendACK(mode);
+
         turnRelaysOn();
     }
 }
@@ -126,7 +128,9 @@ void enableRemoteMode() {
 void enableManualMode() {
     if (mode != ManualMode) {
         mode = ManualMode;
+        benchmarkMode = BenchmarkDone;
         sendACK(mode);
+
         updateAccelerationValue(0);
         updateMotor(0);
         turnRelaysOff();
