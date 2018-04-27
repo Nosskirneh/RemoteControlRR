@@ -26,9 +26,9 @@
 #define RELAY7  30
 #define RELAY8  31
 
-#define PID_Kp 1
-#define PID_Ki 0.5
-#define PID_Kd 0
+unsigned int PID_Kp = 10;
+unsigned int PID_Ki = 5;
+unsigned int PID_Kd = 0;
 #define PID_Tf 0.04
 #define PID_SAMPLE_TIME 0.1 // seconds
 
@@ -183,6 +183,21 @@ void readRadio() {
             sendACK(header);
         } else if (header == Benchmark) {
             handleBenchmark(message & 0xFF);
+        } else if (header == PIDP) {
+            PID_Kp = message & 0xFF;
+            memset(logMsg, 0, sizeof(logMsg));
+            sprintf(logMsg, "Read new P message: %d", PID_Kp);
+            DEBUG_PRINTLN(logMsg);
+        } else if (header == PIDI) {
+            PID_Ki = message & 0xFF;
+            memset(logMsg, 0, sizeof(logMsg));
+            sprintf(logMsg, "Read new I message: %d", PID_Ki);
+            DEBUG_PRINTLN(logMsg);
+        } else if (header == PIDD) {
+            PID_Kd = message & 0xFF;
+            memset(logMsg, 0, sizeof(logMsg));
+            sprintf(logMsg, "Read new D message: %d", PID_Kd);
+            DEBUG_PRINTLN(logMsg);
         }
     } else if (mode != ManualMode && millis() - lastMessageReceivedTime > 5000) {
         DEBUG_PRINTLN("No radio messages received for 5 seconds, falling back to manual mode!");
@@ -248,11 +263,16 @@ double calculatePID() {
         // Calculate the error
         int e = steeringRef - getSteeringValue();
 
-        D = PID_Tf / (PID_Tf + PID_SAMPLE_TIME) * D + PID_Kd / (PID_Tf + PID_SAMPLE_TIME) * (e - e_old);
-        P = PID_Kp * e;
+        // Turn the ints into floats
+        double Kp = PID_Kp / 10.0f;
+        double Ki = PID_Ki / 10.0f;
+        double Kd = PID_Kd / 10.0f;
+
+        D = PID_Tf / (PID_Tf + PID_SAMPLE_TIME) * D + Kd / (PID_Tf + PID_SAMPLE_TIME) * (e - e_old);
+        P = Kp * e;
         double u = P + D + I; // Calculate control output
         // Calculate next I value
-        I = I + PID_Ki * PID_SAMPLE_TIME * e;
+        I = I + Ki * PID_SAMPLE_TIME * e;
 
         e_old = e;
 

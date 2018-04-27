@@ -121,10 +121,22 @@ String getStringAtIndexSeparatedByChar(String data, char separator, int index) {
 
 void processSerialMessage(String input) {
     String header = getStringAtIndexSeparatedByChar(input, ' ', 0);
+    int data = getStringAtIndexSeparatedByChar(input, ' ', 1).toInt();
     if (header.equals("NEW_LOG")) {
         DEBUG_PRINTLN("Read newlog message");
-        int data = getStringAtIndexSeparatedByChar(input, ' ', 1).toInt();
         int message = combine(NewLog, data);
+        sendRadioMessage(message);
+    } else if (header.equals("PID_P")) {
+        DEBUG_PRINTLN("Read new PID P message");
+        int message = combine(PIDP, data);
+        sendRadioMessage(message);
+    } else if (header.equals("PID_I")) {
+        DEBUG_PRINTLN("Read new PID I message");
+        int message = combine(PIDI, data);
+        sendRadioMessage(message);
+    } else if (header.equals("PID_D")) {
+        DEBUG_PRINTLN("Read new PID D message");
+        int message = combine(PIDD, data);
         sendRadioMessage(message);
     }
 }

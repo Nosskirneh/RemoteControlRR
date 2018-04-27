@@ -24,7 +24,10 @@ typedef enum MessageType {
     SetLogging = 0b10000000,
     NewLog     = 0b10000001,
     Benchmark  = 0b10000010,
-    ACK        = 0b10000011
+    ACK        = 0b10000011,
+    PIDP       = 0b11000000,
+    PIDI       = 0b11000001,
+    PIDD       = 0b11000010
 } MessageType;
 
 // To be sent after the Benchmark header
