@@ -42,7 +42,7 @@ typedef enum BenchmarkMode {
 } BenchmarkMode;
 
 const byte RADIO_ADDRESS[2][6] = {"00001", "00002"};
-const char logMsg[100];
+const char logMsg[60];
 
 // Put the content on the first two bytes of an int
 int combine(byte b1, byte b2);

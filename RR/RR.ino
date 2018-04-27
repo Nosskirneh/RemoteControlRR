@@ -46,8 +46,8 @@ static bool logEnabled = true;
 
 
 void setup() {
-    Serial.begin(9600);
-    Serial1.begin(230400);
+    Serial.begin(115200);
+    Serial1.begin(115200);
 
     // Radio
     radio.begin();
@@ -147,21 +147,25 @@ void readRadio() {
         int header = message >> 8 & 0xFF;
         if (header == ManualMode) {
             enableManualMode();
+            memset(logMsg, 0, sizeof(logMsg));
             sprintf(logMsg, "Read change mode to: %d", mode);
             DEBUG_PRINTLN(logMsg);
         } else if (header == RemoteMode) {
             enableRemoteMode();
+            memset(logMsg, 0, sizeof(logMsg));
             sprintf(logMsg, "Read change mode to: %d", mode);
             DEBUG_PRINTLN(logMsg);
         } else if (header == Steer) {
             enableRemoteMode();
             steeringRef = message & 0xFF;
+            memset(logMsg, 0, sizeof(logMsg));
             sprintf(logMsg, "Read steering message: %d", steeringRef);
             DEBUG_PRINTLN(logMsg);
         } else if (header == Accelerate) {
             enableRemoteMode();
             int acc = message & 0xFF;
             updateAccelerationValue(acc);
+            memset(logMsg, 0, sizeof(logMsg));
             sprintf(logMsg, "Read accelerate message: %d", acc);
             DEBUG_PRINTLN(logMsg);
         } else if (header == SetLogging) {
@@ -169,10 +173,13 @@ void readRadio() {
             sendACK(header);
         } else if (header == NewLog) {
             int logNumber = message & 0xFF;
-            Serial1.println("NEW_LOG");
-            Serial1.println(logNumber);
+            memset(logMsg, 0, sizeof(logMsg));
+            sprintf(logMsg, "NEW_LOG %d", logNumber);
+            sendToLog();
             Serial.println("\n*** Logging begin ***");
-            Serial1.println("millis(), steeringRef, steering sensor, acceleration");
+            memset(logMsg, 0, sizeof(logMsg));
+            sprintf(logMsg, "millis(), steeringRef, steering sensor, acceleration");
+            sendToLog();
             sendACK(header);
         } else if (header == Benchmark) {
             handleBenchmark(message & 0xFF);
@@ -181,6 +188,24 @@ void readRadio() {
         DEBUG_PRINTLN("No radio messages received for 5 seconds, falling back to manual mode!");
         enableManualMode();
     }
+}
+
+void sendToLog() {
+    while (!tryToLog()) {
+        DEBUG_PRINTLN("Serial1 busy... trying again!");
+    }
+}
+
+bool tryToLog() {
+    static unsigned long lastSentMessage = 0;
+
+    if (millis() - lastSentMessage > 30) {
+        lastSentMessage = millis();
+        Serial1.write(logMsg, 60);
+        Serial.println(logMsg);
+        return true;
+    }
+    return false;
 }
 
 // Send radio message that the last message with header `header` was received.
@@ -263,11 +288,13 @@ void updateMotor(double speed) {
 }
 
 void runBenchmark(boolean toRight) {
+    memset(logMsg, 0, sizeof(logMsg));
     sprintf(logMsg, "Benchmark (toRight: %d) has begun!", toRight);
     DEBUG_PRINTLN(logMsg);
-    Serial1.println(logMsg);
+    sendToLog();
     steeringRef = toRight ? 255 : 0;
 
+    memset(logMsg, 0, sizeof(logMsg));
     while (abs(steeringRef - getSteeringValue()) > 10) {
         sprintf(logMsg, "1: SteeringValue: %d, ref: %d", getSteeringValue(), steeringRef);
         DEBUG_PRINTLN(logMsg);
@@ -283,6 +310,7 @@ void runBenchmark(boolean toRight) {
     steeringRef = toRight ? 0 : 255;
     double timeStart = millis();
 
+    memset(logMsg, 0, sizeof(logMsg));
     while (abs(steeringRef - getSteeringValue()) > 10) {
         sprintf(logMsg, "2: SteeringValue: %d, ref: %d", getSteeringValue(), steeringRef);
         DEBUG_PRINTLN(logMsg);
@@ -293,9 +321,10 @@ void runBenchmark(boolean toRight) {
     }
 
     double totalTime = millis() - timeStart;
+    memset(logMsg, 0, sizeof(logMsg));
     sprintf(logMsg, "End to end took: %d", totalTime / 1000);
     DEBUG_PRINTLN(logMsg);
-    Serial1.println(logMsg);
+    sendToLog();
     delay(1000);
 }
 
@@ -308,9 +337,9 @@ void loop() {
 
         // Log
         if (logEnabled) {
+            memset(logMsg, 0, sizeof(logMsg));
             sprintf(logMsg, "%lu,\t%d,\t%d,\t%d", millis(), steeringRef, getSteeringValue(), acceleration);
-            Serial1.println(logMsg);
-            Serial.println(logMsg);   
+            tryToLog();
         }
     }
 }

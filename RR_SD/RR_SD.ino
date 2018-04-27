@@ -6,12 +6,11 @@
 
 char logName[30];
 File logFile;
-const char logMsg[100];
 
 
 void setup() {
-    Serial.begin(9600);
-    Serial1.begin(230400);
+    Serial.begin(115200);
+    Serial1.begin(115200);
 
     // Logging
     if (!SD.begin(SD_PIN)) {
@@ -34,24 +33,17 @@ void logToFile(String str) {
 }
 
 void loop() {
-    static bool nextMsgIsLogName = false;
-    static String input = "";
-
     if (!Serial1.available())
         return;
 
-    input = Serial1.readStringUntil('\0');
-    Serial.print("reading input: ");
-    Serial.println(input);
-    if (input.equals("NEW_LOG")) {
-        // Is next message new log name?
+    String input = Serial1.readStringUntil('\0');
+    if (input.length() == 0)
+        return;
+
+    if (input.startsWith("NEW_LOG")) {
         Serial.println("received new log msg");
-        nextMsgIsLogName = true;
-    } else if (nextMsgIsLogName) {
-        // Save log name
-        sprintf(logName, "%s%lu%s", LOG_FILENAME, input.toInt(), LOG_FILETYPE);
+        sprintf(logName, "%s%lu%s", LOG_FILENAME, input.substring(8).toInt(), LOG_FILETYPE);
         Serial.println(logName);
-        nextMsgIsLogName = false;
     } else {
         // Write to log
         logToFile(input);
