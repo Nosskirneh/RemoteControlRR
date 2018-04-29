@@ -17,10 +17,9 @@ extern RF24 radio;
 
 // To be sent over radio
 typedef enum MessageType {
-    ManualMode = 0b00000001,
-    RemoteMode = 0b00000010,
-    Steer      = 0b00001000,
-    Accelerate = 0b00001001,
+    SetMode    = 0b00000001,
+    Steer      = 0b00000010,
+    Accelerate = 0b00000011,
     SetLogging = 0b10000000,
     NewLog     = 0b10000001,
     Benchmark  = 0b10000010,
@@ -30,7 +29,13 @@ typedef enum MessageType {
     PIDD       = 0b11000010
 } MessageType;
 
-// To be sent after the Benchmark header
+// To be sent as data with SetMode header
+typedef enum Modes {
+    ManualMode = 0b00000001,
+    RemoteMode = 0b00000010
+} Modes;
+
+// To be sent as data with the Benchmark header
 typedef enum BenchmarkData {
     BenchmarkLeft   = 0b00000000,
     BenchmarkRight  = 0b00000001,

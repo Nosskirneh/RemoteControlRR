@@ -145,36 +145,33 @@ void readRadio() {
 
         // Mask out the header (first 8 bits)
         int header = message >> 8 & 0xFF;
-        if (header == ManualMode) {
-            enableManualMode();
-            memset(logMsg, 0, sizeof(logMsg));
-            sprintf(logMsg, "Read change mode to: %d", mode);
-            DEBUG_PRINTLN(logMsg);
-        } else if (header == RemoteMode) {
-            enableRemoteMode();
+        int data = message & 0xFF;
+        if (header == SetMode) {
+            if (data == ManualMode)
+                enableManualMode();
+            else if (data == RemoteMode)
+                enableRemoteMode();
             memset(logMsg, 0, sizeof(logMsg));
             sprintf(logMsg, "Read change mode to: %d", mode);
             DEBUG_PRINTLN(logMsg);
         } else if (header == Steer) {
             enableRemoteMode();
-            steeringRef = message & 0xFF;
+            steeringRef = data;
             memset(logMsg, 0, sizeof(logMsg));
             sprintf(logMsg, "Read steering message: %d", steeringRef);
             DEBUG_PRINTLN(logMsg);
         } else if (header == Accelerate) {
             enableRemoteMode();
-            int acc = message & 0xFF;
-            updateAccelerationValue(acc);
+            updateAccelerationValue(data);
             memset(logMsg, 0, sizeof(logMsg));
-            sprintf(logMsg, "Read accelerate message: %d", acc);
+            sprintf(logMsg, "Read accelerate message: %d", data);
             DEBUG_PRINTLN(logMsg);
         } else if (header == SetLogging) {
-            logEnabled = message & 0xFF;
+            logEnabled = data;
             sendACK(header);
         } else if (header == NewLog) {
-            int logNumber = message & 0xFF;
             memset(logMsg, 0, sizeof(logMsg));
-            sprintf(logMsg, "NEW_LOG %d", logNumber);
+            sprintf(logMsg, "NEW_LOG %d", data);
             sendToLog();
             Serial.println("\n*** Logging begin ***");
             memset(logMsg, 0, sizeof(logMsg));
@@ -184,19 +181,19 @@ void readRadio() {
         } else if (header == Benchmark) {
             handleBenchmark(message & 0xFF);
         } else if (header == PIDP) {
-            PID_Kp = message & 0xFF;
+            PID_Kp = data;
             memset(logMsg, 0, sizeof(logMsg));
             sprintf(logMsg, "Read new P message: %d", PID_Kp);
             DEBUG_PRINTLN(logMsg);
             sendACK(header);
         } else if (header == PIDI) {
-            PID_Ki = message & 0xFF;
+            PID_Ki = data;
             memset(logMsg, 0, sizeof(logMsg));
             sprintf(logMsg, "Read new I message: %d", PID_Ki);
             DEBUG_PRINTLN(logMsg);
             sendACK(header);
         } else if (header == PIDD) {
-            PID_Kd = message & 0xFF;
+            PID_Kd = data;
             memset(logMsg, 0, sizeof(logMsg));
             sprintf(logMsg, "Read new D message: %d", PID_Kd);
             DEBUG_PRINTLN(logMsg);

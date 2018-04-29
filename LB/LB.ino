@@ -196,7 +196,7 @@ void sendChangeOfMode() {
     sprintf(logMsg, "Sending mode change to: %d", mode);
     DEBUG_PRINTLN(logMsg);
 
-    sendRadioMessage(combine(mode, 0));
+    sendRadioMessage(combine(SetMode, mode));
 }
 
 void sendRightBenchmark() {
