@@ -188,16 +188,19 @@ void readRadio() {
             memset(logMsg, 0, sizeof(logMsg));
             sprintf(logMsg, "Read new P message: %d", PID_Kp);
             DEBUG_PRINTLN(logMsg);
+            sendACK(header);
         } else if (header == PIDI) {
             PID_Ki = message & 0xFF;
             memset(logMsg, 0, sizeof(logMsg));
             sprintf(logMsg, "Read new I message: %d", PID_Ki);
             DEBUG_PRINTLN(logMsg);
+            sendACK(header);
         } else if (header == PIDD) {
             PID_Kd = message & 0xFF;
             memset(logMsg, 0, sizeof(logMsg));
             sprintf(logMsg, "Read new D message: %d", PID_Kd);
             DEBUG_PRINTLN(logMsg);
+            sendACK(header);
         }
     } else if (mode != ManualMode && millis() - lastMessageReceivedTime > 5000) {
         DEBUG_PRINTLN("No radio messages received for 5 seconds, falling back to manual mode!");
