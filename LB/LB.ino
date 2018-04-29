@@ -95,10 +95,11 @@ void checkSerialMessage() {
     static String input = "";
 
     if (Serial.available()) {
-        input = Serial.readStringUntil(';');
+        input = Serial1.readStringUntil('\0');
+        if (input.length() == 0)
+            return;
         Serial.println(input);
         processSerialMessage(input);
-        input = "";
     }
 }
 

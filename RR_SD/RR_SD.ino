@@ -33,10 +33,12 @@ void logToFile(String str) {
 }
 
 void loop() {
+    static String input;
+
     if (!Serial1.available())
         return;
 
-    String input = Serial1.readStringUntil('\0');
+    input = Serial1.readStringUntil('\0');
     if (input.length() == 0)
         return;
 
