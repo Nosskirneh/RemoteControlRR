@@ -117,14 +117,74 @@ void enableManualMode() {
 void handleBenchmark(byte data) {
     sendACK(Benchmark);
 
-    if (data == BenchmarkRight || data == BenchmarkLeft) {
-        // First set speed to 0
-        updateAccelerationValue(0);
-        DEBUG_PRINTLN("Waiting for RescueRunner to slow down (1 s)...");
-        delay(1000);
-        // Run benchmark
-        runBenchmark(data);
+    // First set speed to 0
+    updateAccelerationValue(0);
+    DEBUG_PRINTLN("Waiting for RescueRunner to slow down (1 s)...");
+    delay(1000);
+
+    // Run benchmark
+    if (data == BenchmarkRightToLeft)
+        runBenchmark(255, 0);
+    else if  (data == BenchmarkLeftToRight)
+        runBenchmark(0, 255);
+    else if (data == BenchmarkRightToMid)
+        runBenchmark(255, 128);
+    else if (data == BenchmarkLeftToMid)
+        runBenchmark(128, 0);
+}
+
+void runBenchmark(byte startValue, byte endValue) {
+    memset(logMsg, 0, sizeof(logMsg));
+    sprintf(logMsg, "Benchmark has begun (%d to %d)", startValue, endValue);
+    DEBUG_PRINTLN(logMsg);
+    sendToLog();
+    steeringRef = startValue;
+
+    memset(logMsg, 0, sizeof(logMsg));
+    while (abs(steeringRef - getSteeringValue()) > 5) {
+        sprintf(logMsg, "1: SteeringValue: %d, ref: %d", getSteeringValue(), steeringRef);
+        DEBUG_PRINTLN(logMsg);
+        updateMotor(calculatePID());
+
+        // Should cancel?
+        if (shouldStopBenchmark()) return;
     }
+
+    delay(1000);
+
+    // Motor is at end point
+    steeringRef = endValue;
+    memset(logMsg, 0, sizeof(logMsg));
+    double timeStart = millis();
+
+    bool hasReachedGoal = false;
+    unsigned long timeSinceGoal = 0;
+    while (timeSinceGoal == 0 || millis() - timeSinceGoal > 1000) {
+        sprintf(logMsg, "2: SteeringValue: %d, ref: %d", getSteeringValue(), steeringRef);
+        DEBUG_PRINTLN(logMsg);
+        log();
+
+        updateMotor(calculatePID());
+
+        if (abs(steeringRef - getSteeringValue()) < 5) { // Reached goal?
+            if (!hasReachedGoal) { // Do not overwrite the saved time on any following goal run
+                hasReachedGoal = true;
+                timeSinceGoal = millis(); // Save time
+            }
+        } else {
+            hasReachedGoal = false;
+            timeSinceGoal = 0;
+        }
+
+        // Should cancel?
+        if (shouldStopBenchmark()) return;
+    }
+
+    memset(logMsg, 0, sizeof(logMsg));
+    sprintf(logMsg, "End to end took: %d", (timeSinceGoal - timeStart) / 1000);
+    DEBUG_PRINTLN(logMsg);
+    sendToLog();
+    delay(1000);
 }
 
 // Smaller version of readRadio to be called in the benchmark method
@@ -307,45 +367,12 @@ void updateMotor(double speed) {
     analogWrite(MOTOR_SPEED, abs(speed));
 }
 
-void runBenchmark(boolean toRight) {
-    memset(logMsg, 0, sizeof(logMsg));
-    sprintf(logMsg, "Benchmark (toRight: %d) has begun!", toRight);
-    DEBUG_PRINTLN(logMsg);
-    sendToLog();
-    steeringRef = toRight ? 255 : 0;
-
-    memset(logMsg, 0, sizeof(logMsg));
-    while (abs(steeringRef - getSteeringValue()) > 10) {
-        sprintf(logMsg, "1: SteeringValue: %d, ref: %d", getSteeringValue(), steeringRef);
-        DEBUG_PRINTLN(logMsg);
-        updateMotor(calculatePID());
-
-        // Should cancel?
-        if (shouldStopBenchmark()) return;
+void log() {
+    if (logEnabled) {
+        memset(logMsg, 0, sizeof(logMsg));
+        sprintf(logMsg, "%lu,\t%d,\t%d,\t%d", millis(), steeringRef, getSteeringValue(), acceleration);
+        tryToLog();
     }
-
-    delay(1000);
-
-    // Motor is at end point
-    steeringRef = toRight ? 0 : 255;
-    double timeStart = millis();
-
-    memset(logMsg, 0, sizeof(logMsg));
-    while (abs(steeringRef - getSteeringValue()) > 10) {
-        sprintf(logMsg, "2: SteeringValue: %d, ref: %d", getSteeringValue(), steeringRef);
-        DEBUG_PRINTLN(logMsg);
-        updateMotor(calculatePID());
-
-        // Should cancel?
-        if (shouldStopBenchmark()) return;
-    }
-
-    double totalTime = millis() - timeStart;
-    memset(logMsg, 0, sizeof(logMsg));
-    sprintf(logMsg, "End to end took: %d", totalTime / 1000);
-    DEBUG_PRINTLN(logMsg);
-    sendToLog();
-    delay(1000);
 }
 
 void loop() {
@@ -356,10 +383,6 @@ void loop() {
         updateMotor(calculatePID());
 
         // Log
-        if (logEnabled) {
-            memset(logMsg, 0, sizeof(logMsg));
-            sprintf(logMsg, "%lu,\t%d,\t%d,\t%d", millis(), steeringRef, getSteeringValue(), acceleration);
-            tryToLog();
-        }
+        log();
     }
 }

@@ -37,9 +37,11 @@ typedef enum Modes {
 
 // To be sent as data with the Benchmark header
 typedef enum BenchmarkData {
-    BenchmarkLeft   = 0b00000000,
-    BenchmarkRight  = 0b00000001,
-    BenchmarkCancel = 0b11110000
+    BenchmarkRightToLeft = 0b00000000,
+    BenchmarkLeftToRight = 0b00000001,
+    BenchmarkRightToMid  = 0b00000010,
+    BenchmarkLeftToMid   = 0b00000011,
+    BenchmarkCancel      = 0b11110000
 } BenchmarkData;
 
 // To be used locally
