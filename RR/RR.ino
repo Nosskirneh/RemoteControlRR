@@ -26,10 +26,10 @@
 #define RELAY7  30
 #define RELAY8  31
 
-unsigned int PID_Kp = 10;
-unsigned int PID_Ki = 5;
+unsigned int PID_Kp = 15;
+unsigned int PID_Ki = 15;
 unsigned int PID_Kd = 0;
-#define PID_Tf 0.04
+#define PID_Tf 0.25
 #define PID_SAMPLE_TIME 0.1 // seconds
 
 #define STEERING_SENSOR      A11
