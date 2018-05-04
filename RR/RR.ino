@@ -120,7 +120,7 @@ void handleBenchmark(byte data) {
     // First set speed to 0
     updateAccelerationValue(0);
     DEBUG_PRINTLN("Waiting for RescueRunner to slow down (1 s)...");
-    delay(1000);
+    pauseBenchmarkForTime(1000);
 
     // Run benchmark
     if (data == BenchmarkRightToLeft)
@@ -131,6 +131,14 @@ void handleBenchmark(byte data) {
         runBenchmark(255, 128);
     else if (data == BenchmarkLeftToMid)
         runBenchmark(128, 0);
+}
+
+void pauseBenchmarkForTime(unsigned int delay) {
+    unsigned long pauseStartTime = millis();
+    while (millis() - pauseStartTime < delay) {
+        updateMotor(calculatePID());
+        log();
+    }
 }
 
 void runBenchmark(byte startValue, byte endValue) {
@@ -150,7 +158,7 @@ void runBenchmark(byte startValue, byte endValue) {
         if (shouldStopBenchmark()) return;
     }
 
-    delay(1000);
+    pauseBenchmarkForTime(500);
 
     // Motor is at end point
     steeringRef = endValue;
@@ -184,7 +192,6 @@ void runBenchmark(byte startValue, byte endValue) {
     sprintf(logMsg, "End to end took: %d", (timeSinceGoal - timeStart) / 1000);
     DEBUG_PRINTLN(logMsg);
     sendToLog();
-    delay(1000);
 }
 
 // Smaller version of readRadio to be called in the benchmark method
