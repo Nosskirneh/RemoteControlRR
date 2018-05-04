@@ -33,8 +33,8 @@ unsigned int PID_Kd = 0;
 #define PID_SAMPLE_TIME 0.1 // seconds
 
 #define STEERING_SENSOR      A11
-#define STEERING_SENSOR_LOW  630  // 666
-#define STEERING_SENSOR_HIGH 40   // 29
+#define STEERING_SENSOR_LOW  655 // max 670
+#define STEERING_SENSOR_HIGH 10  // min 0
 
 RF24 radio(RADIO_CE, RADIO_CSN);
 MCP41_Simple potentiometer;
