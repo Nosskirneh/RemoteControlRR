@@ -92,12 +92,10 @@ void sendVibratePulses(unsigned int p, unsigned int t) {
 // ---
 
 void checkSerialMessage() {
-    static String input = "";
-
     if (Serial.available()) {
-        input = Serial1.readStringUntil('\0');
-        if (input.length() == 0)
-            return;
+        String input = Serial.readStringUntil('\0'); 
+        if (input.length() == 0) 
+            return; 
         Serial.println(input);
         processSerialMessage(input);
     }
