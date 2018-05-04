@@ -164,7 +164,7 @@ void runBenchmark(byte startValue, byte endValue) {
     // Motor is at end point
     steeringRef = endValue;
     memset(logMsg, 0, sizeof(logMsg));
-    double timeStart = millis();
+    unsigned long timeStart = millis();
 
     bool hasReachedGoal = false;
     unsigned long timeSinceGoal = 0;
@@ -190,7 +190,7 @@ void runBenchmark(byte startValue, byte endValue) {
     }
 
     memset(logMsg, 0, sizeof(logMsg));
-    sprintf(logMsg, "End to end took: %d", (timeSinceGoal - timeStart) / 1000);
+    sprintf(logMsg, "End to end took: %ld ms", (timeSinceGoal - timeStart));
     DEBUG_PRINTLN(logMsg);
     sendToLog();
 }
