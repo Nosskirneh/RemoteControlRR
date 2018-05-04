@@ -344,6 +344,7 @@ double calculatePID() {
 
         e_old = e;
 
+        I = constrain(I, -255.0 - P - D, 255 - P - D);
         // Make sure the calculated output is within limit
         return output = constrain(u, -255.0, 255.0);
     }
