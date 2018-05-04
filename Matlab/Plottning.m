@@ -1,6 +1,6 @@
 %% Read file
 clear;
-filename = 'LOG11.TXT';
+filename = 'OUTPUT.TXT';
 delimiterIn = ',';
 headerlinesIn = 1;
 A = importdata(filename,delimiterIn,headerlinesIn);
@@ -20,11 +20,11 @@ clf;
 plot(t,steeringRef, '--o', 'markersize', 3);
 hold on;
 plot(t,sensorValue, '--o', 'markersize', 3);
-plot(t,accelerate, '--o', 'markersize', 3);
+%plot(t,accelerate, '--o', 'markersize', 3);
 plot([min(t) max(t)], [128 128], 'k');
 
-legend('Önskad styrvinkel', 'Verklig styrvinkel');
+legend('Ã–nskad styrvinkel', 'Verklig styrvinkel');
 xlabel('tid [s]'); 
-axis([min(t) max(t) 0 255]);
+%axis([min(t) max(t) -10 265]);
 grid on;
 title('Loggad data');
