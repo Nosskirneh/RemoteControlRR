@@ -130,7 +130,7 @@ void handleBenchmark(byte data) {
     else if (data == BenchmarkRightToMid)
         runBenchmark(255, 128);
     else if (data == BenchmarkLeftToMid)
-        runBenchmark(128, 0);
+        runBenchmark(0, 128);
 }
 
 void pauseBenchmarkForTime(unsigned int delay) {
