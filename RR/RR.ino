@@ -149,7 +149,7 @@ void runBenchmark(byte startValue, byte endValue) {
     steeringRef = startValue;
 
     memset(logMsg, 0, sizeof(logMsg));
-    while (abs(steeringRef - getSteeringValue()) > 5) {
+    while (abs(steeringRef - getSteeringValue()) > 10) {
         sprintf(logMsg, "1: SteeringValue: %d, ref: %d", getSteeringValue(), steeringRef);
         DEBUG_PRINTLN(logMsg);
         log();
@@ -175,7 +175,7 @@ void runBenchmark(byte startValue, byte endValue) {
 
         updateMotor(calculatePID());
 
-        if (abs(steeringRef - getSteeringValue()) < 5) { // Reached goal?
+        if (abs(steeringRef - getSteeringValue()) < 10) { // Reached goal?
             if (!hasReachedGoal) { // Do not overwrite the saved time on any following goal run
                 hasReachedGoal = true;
                 timeSinceGoal = millis(); // Save time
