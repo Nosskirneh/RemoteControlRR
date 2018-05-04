@@ -152,6 +152,7 @@ void runBenchmark(byte startValue, byte endValue) {
     while (abs(steeringRef - getSteeringValue()) > 5) {
         sprintf(logMsg, "1: SteeringValue: %d, ref: %d", getSteeringValue(), steeringRef);
         DEBUG_PRINTLN(logMsg);
+        log();
         updateMotor(calculatePID());
 
         // Should cancel?
