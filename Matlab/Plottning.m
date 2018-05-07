@@ -9,6 +9,7 @@ A = importdata(filename,delimiterIn,headerlinesIn);
 %A.data(A.data(:,3) < -100, :) = [];
 
 t =             A.data(:,1)./1000;
+t =             t-min(t);
 steeringRef =   A.data(:,2);
 sensorValue =   A.data(:,3);
 accelerate =    A.data(:,4);
@@ -23,7 +24,7 @@ plot(t,sensorValue, '--o', 'markersize', 3);
 %plot(t,accelerate, '--o', 'markersize', 3);
 plot([min(t) max(t)], [128 128], 'k');
 
-legend('Ã–nskad styrvinkel', 'Verklig styrvinkel');
+legend('Önskat styrvärde', 'Verkligt styrvärde');
 xlabel('tid [s]'); 
 %axis([min(t) max(t) -10 265]);
 grid on;
