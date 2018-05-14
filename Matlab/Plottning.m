@@ -24,8 +24,8 @@ plot(t,sensorValue, '--o', 'markersize', 3);
 %plot(t,accelerate, '--o', 'markersize', 3);
 plot([min(t) max(t)], [128 128], 'k');
 
-legend('÷nskat styrv‰rde', 'Verkligt styrv‰rde');
+legend('√ñnskat styrv√§rde', 'Verkligt styrv√§rde');
 xlabel('tid [s]'); 
 %axis([min(t) max(t) -10 265]);
 grid on;
-title('Loggad data');
+%title('Loggad data');
